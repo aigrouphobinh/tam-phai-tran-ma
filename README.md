@@ -106,3 +106,14 @@ Mở **http://127.0.0.1:8788/models** để xem từng model. Chọn một hoạ
 - Các test trong \`tests/animation-timeline.test.mjs\` kiểm tra sát thương theo thời điểm, phát lại cùng state, pha animation, khiên boss và cue âm thanh.
 
 **Giới hạn hiện tại:** Rig dùng Canvas/vector cắt lớp. Chưa có bộ sprite anime riêng cho từng môn phái và boss với texture atlas được vẽ, tách lớp và rig theo tiêu chuẩn Spine thương mại. Đây là hướng nâng cấp mỹ thuật tiếp theo; tuyệt đối không thay bằng hình minh họa cố định hoặc video giả lập.
+
+## Game Studio: thiết kế từng animation model
+
+Mở **http://127.0.0.1:8788/animation-studio**. Trang này sử dụng bốn texture WebP đã có trong game và cùng renderer /obs, không phải giao diện giả lập ảnh đẹp.
+
+- Chọn **Kiếm Tông / Huyền Môn / Linh Dược / Hồng Liên** rồi chọn 8 state hoặc các chiêu boss.
+- Xem ở 0.25×, kéo scrub 0–100%, tua lại, chọn cue, lưu PNG khung hình và xuất JSON storyboard.
+- Timeline riêng từng môn nằm tại public/animation-direction.js; sprite-mesh.js nhận kinematics của các track này để vẽ trên texture RGBA thật.
+- Thời lượng các chiêu trên LIVE vẫn bị khóa theo server actionSeq/actionAt/actionDuration. Khi có atlas nhiều frame được duyệt, SkinRenderer ưu tiên atlas.
+- Chuẩn vẽ và checklist còn lại: docs/ANIMATION_MODEL_DESIGN.md. **Chưa có** full bone rig/atlas vẽ tay và chưa kiểm thử FPS OBS trên Windows thật.
+
