@@ -79,6 +79,10 @@ export class RaidEngine{
  skill(p,tier,source='gift',value=0){
   if(this.result||!p)return;const name=SKILLS[p.faction]?.[tier-1];if(!name)return;
   const power=[0,190,390,750,1450,2850][tier];
+  // The sender's actual model enters a cast/attack state; visible on /obs and /models.
+  // This state is part of the authoritative snapshot, not an unrelated visual effect.
+  if(p.hp>0){p.state=p.faction==='kiem'?'attack':'cast';
+    p.stateUntil=Math.max(p.stateUntil,this.elapsed+(tier>=5?.85:.42));}
   const ev={actorId:p.id,name:p.name,faction:p.faction,tier,skill:name,skillId:`${p.faction}_t${tier}`,source,value,
     x:p.x,y:p.y,targetX:422,targetY:420};
   this.emit('SKILL_CAST',ev);
