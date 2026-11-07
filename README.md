@@ -7,6 +7,10 @@ Game boss raid local cho TikTok LIVE. Dùng Node.js 22 trở lên. Mở terminal
 - Để nhận sự kiện thật, chạy `npm install tiktok-live-connector@2.5.0`, khởi động lại server, nhập tên kênh đang LIVE ở trang điều khiển. Trạng thái kết nối và lỗi hiển thị tại đó. Khả năng kết nối phụ thuộc quyền truy cập của TikTok và dịch vụ ký mà connector sử dụng.
 - Kiểm thử bằng `npm test`. Server chỉ lắng nghe ở loopback. Đổi cổng bằng biến PORT.
 
+## Phần 1 · Sân luyện tập và đòn đánh thường
+
+Ở /admin chọn **Mở sân luyện tập**, thêm một đệ tử rồi xem /obs. Sân trống sẽ chờ cho tới khi có người. Đệ tử đi từ cổng trái vào tầm theo môn phái, chuẩn bị đòn, đánh trúng rồi hồi đòn. Server tính vị trí, khiên, máu và điểm. Các snapshot giúp OBS mở giữa trận vẫn thấy vị trí hiện tại. Sân luyện không tự phát quà.
+
 ## Luật trận
 
 Chat !kiem, !huyen hoặc !linh để nhập môn. Người chưa nhập môn gửi quà được xếp vào Kiếm Tông. Mỗi trận kéo dài tối đa 240 giây từ người đầu tiên, mỗi nhân vật tự đóng góp sát thương. !skill hồi sau 8 giây. Like tích thanh hợp kích. Quà kích hoạt một trong 15 chiêu, bậc 1–5 theo tổng giá trị 1 / 5 / 20 / 100 / 500. Chuỗi có cờ streak chốt khi nhận repeatEnd. Boss tăng sức mạnh ở hai ngưỡng máu và dựng khiên mỗi 30 giây. Hết thời gian hoặc trận pháp vỡ thì thua. Sau bảng vinh danh 12 giây, mở trận mới.

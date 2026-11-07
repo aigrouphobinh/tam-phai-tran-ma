@@ -4,6 +4,7 @@ const colors={kiem:'#76caff',huyen:'#ca99ff',linh:'#89e7a9',warn:'#ff745e',end:'
 const names={kiem:'Kiếm Tông',huyen:'Huyền Môn',linh:'Linh Dược'};
 const glyph={kiem:'⚔',huyen:'✧',linh:'✿'};
 let state,last=0,fx=[],audio,link=true;
+let origins=new Map(), receivedAt=0;
 const button=document.querySelector('button');
 button.onclick=async()=>{audio??=new AudioContext();await audio.resume();button.hidden=true;};
 function tone(kind,tier){
@@ -24,6 +25,10 @@ stream.onmessage=e=>{
     fx.push(...fresh.slice(-4).map(x=>({...x,start:performance.now()})));
     fx=fx.slice(-5);if(fresh.length)tone(fresh.at(-1).type,fresh.at(-1).tier);
   }else{fx=[];}
+  if(!state||state.round!==next.round||state.elapsed!==next.elapsed){
+    origins=new Map(state?.round===next.round ? state.players.map(p=>[p.id,p]) : []);
+    receivedAt=performance.now();
+  }
   last=next.events.at(-1)?.id||0;state=next;
 };
 function label(value,x,y,size,color='#fff0c8',align='left',family='Georgia'){
@@ -37,11 +42,20 @@ function boss(t){
   shape(silhouette);g.clip();if(art.naturalWidth)g.drawImage(art,480,330);g.restore();
 }
 function fighter(p,i,t){
-  const row=i%8,col=Math.floor(i/8),x=35+col*37+(row%2)*14+3*Math.sin(t*3+i),y=395+row*29;
+  const from=origins.get(p.id)||p;
+  const k=Math.min(1,Math.max(0,(t*1000-receivedAt)/1000));
+  const swing=p.action==='strike'? Math.sin(Math.PI*Math.min(1,k*2)):0;
+  const x=from.x+(p.x-from.x)*k+swing*6;
+  const y=from.y+(p.y-from.y)*k;
+  if(p.action==='strike'&&p.lastHit&&k<.65){
+    g.save();g.globalAlpha=1-k/.65;g.strokeStyle=colors[p.faction];
+    g.beginPath();g.moveTo(x+9,-12+y);g.lineTo(365,455);g.stroke();
+    label('−'+p.lastHit,366,443-20*k,14,colors[p.faction]);g.restore();
+  }
   g.save();g.translate(x,y);g.fillStyle='#121724';g.fillRect(-6,7,15,4);
   shape([[-4,-17],[4,-18],[9,-9],[7,-4],[11,7],[-10,7],[-5,-6],[-9,-10]],colors[p.faction]);
   g.fillStyle='#ecc8a9';g.fillRect(-4,-24,8,8);g.fillStyle='#1b2033';g.fillRect(-6,-26,11,4);
-  g.strokeStyle=colors[p.faction];g.beginPath();g.moveTo(4,-8);g.lineTo(20+Math.sin(t*5+i)*4,-21);g.stroke();
+  g.strokeStyle=colors[p.faction];g.beginPath();g.moveTo(4,-8);g.lineTo(p.action==='windup'?4:20+swing*10,p.action==='windup'?-32:-21+swing*12);g.stroke();
   if(i===state.players.length-1||i<3)label(p.name.slice(0,10),0,-29,11,'#fff','center','sans-serif');g.restore();
 }
 function frame(ms){
@@ -72,6 +86,7 @@ function frame(ms){
   if(msg)label(msg,270,638,26,'#ffdbae','center');
   label('TRẬN PHÁP',24,724,15);bar(141,714,170,s.team/1000,'#94d9be');label(s.count+' đệ tử',514,725,18,'#efcf94','right');
   for(const [i,f] of Object.keys(names).entries()){const x=25+i*167;label(glyph[f]+' '+names[f],x,777,20,colors[f]);label('!'+f,x,802,17,'#d5c6ad');}
+  if(s.shield)label('Khiên '+s.shield,515,172,14,'#f7c76b','right');
   const event=s.events.at(-1);label(s.result&&s.leaders.length?'MVP · '+s.leaders[0].name:event?event.name+' · '+event.text:'Bình luận để chọn môn phái',25,859,19);
   label('!skill   •   Nội lực '+s.energy+'/100',25,901,17,'#a7bec1');label(link?s.status:'Đang nối lại…',25,936,14,'#bdac9c');
 }

@@ -6,6 +6,7 @@ const port=Number(process.env.PORT||8788), save=new URL('./save.json',import.met
 let scores={};
 try{scores=JSON.parse(await readFile(save));}catch(e){if(e.code!=='ENOENT')console.warn('Không đọc được bảng điểm:',e.message);}
 const raid=new Raid(scores), clients=new Set();
+let training=false;
 let status='Chờ kết nối',stop=()=>{},demo=false,sequence=0;
 const factions=['kiem','huyen','linh'];
 function simulate(){
@@ -39,12 +40,16 @@ http.createServer(async(req,res)=>{
        req.headers['content-type']!=='application/json'){res.writeHead(403).end();return;}
     try{
       let raw='';for await(const chunk of req){raw+=chunk;if(raw.length>2048)throw Error('Dữ liệu quá dài');}
-      const {action,room}=JSON.parse(raw);
+      const {action,room,faction}=JSON.parse(raw);
       if(action==='live'&&!/^[\w.]{1,32}$/.test(room||''))throw Error('Tên kênh không hợp lệ');
-      if(!['live','demo','stop','gift'].includes(action))throw Error('Lệnh không hợp lệ');
-      if(action==='gift'){if(!demo)throw Error('Hãy bật giả lập trước');simulate();}
+      if(!['live','demo','stop','gift','train','join'].includes(action))throw Error('Lệnh không hợp lệ');
+      if(action==='join'){
+        if(!training||!factions.includes(faction))throw Error('Chọn chế độ luyện tập và môn phái');
+        const id='practice'+(++sequence);
+        raid.input({type:'chat',id,name:'Đệ tử '+sequence,text:'!'+faction});
+      }else if(action==='gift'){if(!demo)throw Error('Hãy bật giả lập trước');simulate();}
       else{
-        stop();demo=action==='demo';status=demo?'Giả lập':action==='live'?'Đang kết nối':'Đã ngắt';
+        stop();training=action==='train';demo=action==='demo';status=training?'Luyện tập':demo?'Giả lập':action==='live'?'Đang kết nối':'Đã ngắt';
         raid.start();raid.ward=0;
         if(action==='live')stop=live(room,e=>raid.input(e),s=>{status=s;broadcast();});
       }

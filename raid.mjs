@@ -1,3 +1,4 @@
+import {advance, deploy} from './fighters.mjs';
 import {skills,selectGiftSkill} from './combat.mjs';
 export class Raid {
   constructor(scores={}) {
@@ -19,7 +20,7 @@ export class Raid {
   }
   join(id,name,faction) {
     if(!Object.hasOwn(skills,faction)||this.players.has(id)||this.players.size>=2000) return;
-    this.players.set(id,{id,name:String(name).slice(0,24),faction,score:0,ready:0});
+    this.players.set(id,{id,name:String(name).slice(0,24),faction,score:0,ready:0,...deploy(faction,this.players.size)});
     this.note(name,'Gia nhập môn phái');
   }
   input(e) {
@@ -47,10 +48,12 @@ export class Raid {
     }
   }
   damage(amount) {
+    const before=this.hp+this.shield;
     const absorbed=Math.min(this.shield,amount);
     this.shield-=absorbed;
     this.hp=Math.max(0,this.hp-amount+absorbed);
     if(!this.shield) this.cast=0;
+    return before-this.hp-this.shield;
   }
   apply(p,tier) {
     const power=[0,24,48,90,160,280][tier];
@@ -89,11 +92,14 @@ export class Raid {
     if(!this.players.size) return;
     this.time--; this.elapsed++;
     const phase=this.phase();
-    for(const p of this.players.values()) p.score++;
+
     if(this.regen>0){this.regen--;this.team=Math.min(1000,this.team+12);}
     if(this.bleed>0){this.bleed--;this.damage(10);}
     if(this.stun>0)this.stun--;
-    this.damage(Math.min(30,3+this.players.size));
+    for(const p of this.players.values()){
+      if(!this.hp) break;
+      advance(p,this.elapsed,amount=>this.damage(amount));
+    }
     if(this.energy>=100){this.energy=0;this.damage(80);this.note('Tam phái','Hợp kích','kiem',2);}
     if(!this.hp){this.finish('Trấn ma thành công');return;}
     if(this.illusion>0&&!--this.illusion)this.team-=70;
@@ -114,7 +120,7 @@ export class Raid {
   phase(){return this.hp>2000?1:this.hp>900?2:3;}
   snapshot(){
     const players=[...this.players.values()];
-    return {round:this.round,hp:this.hp,team:Math.max(0,this.team),time:this.time,phase:this.phase(),cast:this.cast,
+    return {round:this.round,elapsed:this.elapsed,hp:this.hp,team:Math.max(0,this.team),time:this.time,phase:this.phase(),cast:this.cast,
       illusion:this.illusion,target:this.target,shield:this.shield,energy:this.energy,events:this.events,players:players.slice(-40),count:players.length,
       leaders:this.leaders,result:this.result,rest:this.rest};
   }
