@@ -1,3 +1,4 @@
+import {pointInWarning,conePoints} from './combat-geometry.mjs';
 // Tam Phai Tran Ma — authoritative deterministic (except seeded raid variation) combat simulation.
 // Rendering receives snapshots/events; it never computes game damage.
 const CLASSES={
@@ -15,13 +16,17 @@ const choose=(arr,n)=>arr[n%arr.length],clamp=(v,a,b)=>Math.max(a,Math.min(b,v))
 const normName=x=>String(x||'Ẩn danh').replace(/[\u0000-\u001f<>]/g,'').slice(0,28);
 const round=n=>Math.round(n*10)/10;
 export class RaidEngine{
- constructor(){this.round=0;this.scores={};this.seq=0;this.start()}
- start(){this.round++;this.players=new Map();this.events=[];this.hp=80000;this.maxHP=80000;
+ constructor(){this.round=0;this.scores=Object.create(null);this.seq=0;this.eventLedger=new Map();this.inputLedger=new Map();this.comboLedger=new Map();this.pendingGifts=[];this.sessionRoom='';this.sessionSource='';this.start()}
+ start({retainPlayers=false}={}){const roster=retainPlayers?[...this.players.values()]:[];
+  this.round++;this.players=new Map();this.events=[];this.hp=80000;this.maxHP=80000;
   this.shield=0;this.team=1000;this.maxTeam=1000;this.time=240;this.elapsed=0;this.phase=1;
   this.energy=0;this.warning=null;this.cast=null;this.nextAttack=5;this.nextShield=30;
   this.result='';this.rest=0;this.bossStun=0;this.bossState='idle';this.counters={kiem:0,huyen:0,linh:0};
-  this.comboLedger=new Map();this.eventLedger=new Map();this.clock=0;this.leaders=[];this.bossHitUntil=0;this.demo=false;
+  this.clock=0;this.leaders=[];this.bossHitUntil=0;this.demo=false;
+  this.illusion=null;this.nextIllusion=22;this.adds=[];this.nextAdds=18;this.poisonAt=0;
   this.bossActionSeq=1;this.bossActionAt=0;this.bossActionDuration=0;this.bossStateUntil=0;this.bossLastReaction=-Infinity;
+  for(const old of roster){const p=this.join(old.id,old.name,old.faction);if(p){p.diamonds=old.diamonds;p.level=old.level;}}
+  const queued=this.pendingGifts.splice(0);for(const g of queued)this.gift(g.id,g.name,g.coins,g.count,null,g.bonus);
  }
  emit(type,extra={}){const ev={id:++this.seq,type,t:this.elapsed,...extra};this.events.push(ev);if(this.events.length>45)this.events.shift();return ev}
  // Discrete authoritative action revision: repeated casts must replay from frame 0.
@@ -45,32 +50,56 @@ export class RaidEngine{
   const y={kiem:392,huyen:508,linh:625}[faction]+(lane%5)*13+(Math.floor(lane/5)*8);
   const p={id,name:normName(name||id),faction,x:10,y:480+(lane-5)*8,tx:x,ty:y,
     hp:100,maxHP:100,state:'run',stateUntil:0,actionSeq:1,actionAt:this.elapsed,actionDuration:0,pendingStrike:null,nextAttack:1+slot*.08,score:0,damage:0,healing:0,mitigated:0,
-    diamonds:0,level:1,scale:0.82,lastHit:0,nextSkillAt:0,leader:false,guardian:false,shield:0};
+    diamonds:0,level:1,scale:0.82,lastHit:0,nextSkillAt:0,leader:false,guardian:false,shield:0,
+    homeX:x,homeY:y,dodgeUntil:0,nextDodgeAt:0,downUntil:0,poison:0};
   this.players.set(id,p);this.emit('JOIN',{actorId:id,name:p.name,faction,x,y});return p
  }
- like(id,count=1){if(!this.players.has(String(id)))return;this.energy=clamp(this.energy+clamp(Math.floor(Number(count)||1),1,15),0,100)}
+ like(id,count=1){if(this.result||!this.players.has(String(id)))return;this.energy=clamp(this.energy+clamp(Math.floor(Number(count)||1),1,15),0,100)}
  chat(id,name,text){
   const cmd=String(text||'').trim().toLowerCase();const match=/^!(kiem|huyen|linh)$/.exec(cmd);
   if(match){this.join(id,name,match[1]);return}
   const p=this.user(id,name);if(!p)return;
+  if(this.result)return;
+  if(/^![123]$/.test(cmd)&&this.illusion){
+    if(p.illusionVote===this.illusion.id)return;
+    p.illusionVote=this.illusion.id;
+    if(Number(cmd.slice(1))===this.illusion.target){this.damage(900,p,'illusion');
+      this.emit('ILLUSION_BROKEN',{actorId:p.id,name:p.name,x:420,y:420});this.illusion=null;}
+    return;
+  }
+  if((cmd==='!ne'||cmd==='!dodge')&&p.hp>0&&this.elapsed>=p.nextDodgeAt){
+    p.dodgeUntil=this.elapsed+2.7;p.nextDodgeAt=this.elapsed+8;
+    this.animate(p,'run',.4,true);this.emit('DODGE',{actorId:p.id,x:p.x,y:p.y});return;
+  }
+  if(p.hp<=0)return;
   if(cmd==='!skill'&&p.nextSkillAt<=this.elapsed){p.nextFreeSkill=false;p.nextSkillAt=this.elapsed+12;this.skill(p,1,'chat')}
  }
- gift(id,name,coins,count=1,key=null){
-  if(this.result)return false;id=String(id||'');if(!id)return false;
+ gift(id,name,coins,count=1,key=null,bonus=''){
+  id=String(id||'');if(!id)return false;
   const unit=Math.trunc(Number(coins)),qty=Math.trunc(Number(count));
   if(!Number.isSafeInteger(unit)||unit<=0||!Number.isSafeInteger(qty)||qty<1||qty>10000)return false;
   const stamp=key?`${id}:${key}`:null;
   if(stamp&&this.eventLedger.has(stamp))return false;
   if(stamp){this.eventLedger.set(stamp,this.elapsed);if(this.eventLedger.size>16000)this.eventLedger.delete(this.eventLedger.keys().next().value)}
+  if(this.result){if(this.pendingGifts.length>=2000)return false;this.pendingGifts.push({id,name,coins:unit,count:qty,bonus});this.emit('GIFT_QUEUED',{actorId:id,name:normName(name)});return true;}
   const total=Math.min(unit*qty,5_000_000),p=this.join(id,name,'kiem');
   if(!p)return false;
+  if(p.hp<=0){p.hp=35;p.downUntil=0;this.emit('REVIVE',{actorId:p.id,targetId:p.id,x:p.x,y:p.y,amount:35});}
   p.diamonds+=total;p.level=clamp(1+Math.floor(p.diamonds/500),1,10);
   const donorBonus=p.diamonds>=5000?.2:p.diamonds>=1000?.15:p.diamonds>=100?.1:p.diamonds>=20?.05:0;
   p.scale=Math.min(1.3,.82+donorBonus+Math.min(.06,(p.level-1)*.01)+(p.leader?.14:0));
   const tier=GIFT_THRESHOLDS.filter(v=>total>=v).length;
-  this.skill(p,tier,'gift',total);this.rank();return true;
+  this.skill(p,tier,'gift',total);this.giftBonus(p,bonus);this.rank();return true;
+ }
+ giftBonus(p,name){
+  const key=String(name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+  if(['donut','doughnut','banh donut'].includes(key)){p.damageBoostUntil=this.elapsed+10;
+   this.emit('GIFT_BONUS',{actorId:p.id,name:p.name,bonus:'Donut · +30% sát thương trong 10 giây',x:p.x,y:p.y});}
+  if(['rocket','ten lua'].includes(key)&&this.shield>0){const absorbed=this.shield;this.shield=0;this.cast=null;this.bossStun=2;p.score+=absorbed*.6;
+   this.emit('SHIELD_BROKEN',{actorId:p.id,x:420,y:420});this.bossAction('stun',.6,true);}
  }
  damage(amount,actor=null,source='attack'){
+  if(actor?.damageBoostUntil>this.elapsed)amount*=1.3;
   amount=Math.max(0,Math.round(amount));let left=amount;
   const block=Math.min(this.shield,left);this.shield-=block;left-=block;
   const hit=Math.min(this.hp,left);this.hp-=hit;
@@ -116,7 +145,7 @@ export class RaidEngine{
     if(tier>=2){for(const q of this.players.values())q.shield=Math.min(110,q.shield+(tier===2?45:35));}
     if(tier>=3){for(const q of this.players.values())q.poison=0;}
     if(tier>=4){const down=[...this.players.values()].filter(x=>x.hp<=0).slice(0,tier===5?10:3);
-      for(const q of down){q.hp=55;this.animate(q,'revive',1.1,true);p.score+=80;this.emit('REVIVE',{actorId:p.id,targetId:q.id,x:q.x,y:q.y})}}
+      for(const q of down){q.hp=55;q.downUntil=0;this.animate(q,'revive',1.1,true);p.score+=80;this.emit('REVIVE',{actorId:p.id,targetId:q.id,x:q.x,y:q.y})}}
   }
   this.rank();
  }
@@ -135,7 +164,8 @@ export class RaidEngine{
  }
  phaseFor(hp){const pct=hp/this.maxHP;return pct>.7?1:pct>.4?2:pct>.15?3:4}
  tick(dt=.05){
-  if(this.result){this.rest-=dt;if(this.rest<=0){this.start()}return}
+  dt=Number.isFinite(dt)?clamp(dt,0,.2):0;
+  if(this.result){this.rest-=dt;if(this.rest<=0){this.start({retainPlayers:true})}return}
   if(!this.players.size)return;
   dt=Math.min(.2,Math.max(0,dt));this.clock+=dt;this.elapsed+=dt;this.time=Math.max(0,240-this.elapsed);
   const phase=this.phaseFor(this.hp);
@@ -143,7 +173,9 @@ export class RaidEngine{
   if(this.bossStun>0){this.bossStun=Math.max(0,this.bossStun-dt);this.bossAction('stun');}
   else if(this.bossStateUntil<=this.elapsed)this.bossAction((this.warning||this.cast)?'windup':'idle');
   for(const p of this.players.values()){
-    if(p.hp<=0){p.pendingStrike=null;this.animate(p,'down');continue}
+    if(p.hp<=0){p.pendingStrike=null;if(!p.downUntil)p.downUntil=this.elapsed+18;
+      if(this.elapsed>=p.downUntil){p.hp=50;p.downUntil=0;this.animate(p,'revive',1.1,true);this.emit('REVIVE',{actorId:p.id,x:p.x,y:p.y,amount:50});}
+      else {this.animate(p,'down');continue}}
     // Server schedules the real collision 240 ms after the attack starts.
     // This aligns model swing, VFX impact, SFX and HP loss.
     if(p.pendingStrike&&this.elapsed>=p.pendingStrike.at){
@@ -151,6 +183,9 @@ export class RaidEngine{
       if(p.faction==='linh'&&this.team<900){
         this.team=Math.min(1000,this.team+7);p.healing+=7;p.score+=4.9;
         this.emit('AUTO_HEAL',{actorId:p.id,faction:p.faction,x:p.x,y:p.y,amount:7});
+      }else if(this.adds.length){const add=this.adds[0];const hit=Math.min(add.hp,CLASSES[p.faction].damage);add.hp-=hit;p.score+=hit;
+        this.emit('ADD_HIT',{actorId:p.id,x:add.x,y:add.y,amount:hit});
+        if(add.hp<=0){this.adds.shift();this.emit('ADD_DOWN',{x:add.x,y:add.y});}
       }else this.damage(CLASSES[p.faction].damage,p,'basic');
     }
     if(this.result)break;
@@ -167,13 +202,27 @@ export class RaidEngine{
     }else this.animate(p,'idle');
   }
   if(this.energy>=100){this.energy=0;this.damage(900,null,'team');this.emit('TEAM_STRIKE',{x:420,y:420})}
+  if(this.result)return;
+  if(this.illusion){this.illusion.remaining-=dt;if(this.illusion.remaining<=0){this.team=Math.max(0,this.team-80);this.illusion=null;this.emit('ILLUSION_EXPIRE',{});}}
+  if(phase>=2&&!this.illusion&&this.elapsed>=this.nextIllusion){
+    this.illusion={id:++this.seq,target:1+(this.round+Math.floor(this.elapsed))%3,remaining:8};this.nextIllusion=this.elapsed+32;
+    this.emit('ILLUSION',{target:this.illusion.target,seconds:8});
+  }
+  if(phase>=3&&this.elapsed>=this.nextAdds){
+    if(this.adds.length<3){for(let i=0;i<2;i++)this.adds.push({id:++this.seq,hp:650,maxHP:650,x:300+i*65,y:480+i*65});this.emit('ADD_SPAWN',{});}
+    for(const p of this.players.values())if(p.hp>0)p.poison=this.elapsed+7;
+    this.nextAdds=this.elapsed+24;
+  }
+  if(this.elapsed>=this.poisonAt){this.poisonAt=this.elapsed+1;
+    for(const p of this.players.values())if(p.hp>0&&p.poison>this.elapsed){p.hp=Math.max(0,p.hp-3);this.emit('PLAYER_HIT',{actorId:p.id,x:p.x,y:p.y,amount:3});}
+    if(this.adds.length)this.team=Math.max(0,this.team-this.adds.length*2);
+  }
   if(this.cast){this.cast.remaining-=dt;if(this.cast.remaining<=0){this.team=Math.max(0,this.team-210);this.emit('SHIELD_EXPLODE',{x:420,y:420,damage:210});this.shield=0;this.cast=null}}
   if(this.warning&&this.elapsed>=this.warning.impactAt){
     const w=this.warning;this.warning=null;this.bossAction('impact',.55,true);
     for(const p of this.players.values()){
-      if(p.hp<=0)continue;
-      const hit=w.kind==='circle'?Math.hypot(p.x-w.x,p.y-w.y)<w.radius:
-        w.kind==='sweep'?p.y>=w.y-20&&p.y<=w.y+50:p.x>200;
+      if(p.hp<=0||p.dodgeUntil>this.elapsed)continue;
+      const hit=pointInWarning(w,p.x,p.y);
       if(hit){let amount=w.damage;const absorb=Math.min(amount,p.shield);p.shield-=absorb;amount-=absorb;
         p.hp=Math.max(0,p.hp-amount);p.pendingStrike=null;this.animate(p,p.hp===0?'down':'hit',p.hp===0?0:.5,true);
         this.emit('PLAYER_HIT',{actorId:p.id,x:p.x,y:p.y,amount})}
@@ -182,9 +231,10 @@ export class RaidEngine{
   }
   if(!this.warning&&!this.cast&&!this.bossStun&&this.elapsed>=this.nextAttack){
     const kind=choose(['circle','sweep','cone'],Math.floor(this.elapsed/4)+this.phase);
-    const y=kind==='sweep'?470:550;
-    this.warning={kind,x:kind==='circle'?220:370,y,radius:100+(phase-1)*8,impactAt:this.elapsed+2.2,
-      damage:12+(phase-1)*5,teamDamage:phase===4?24:12};
+    const candidates=[...this.players.values()].filter(p=>p.hp>0),target=candidates[(this.round+Math.floor(this.elapsed))%Math.max(1,candidates.length)];
+    const y=target?.y||550;
+    this.warning={kind,x:target?.x||220,y,targetId:target?.id,radius:100+(phase-1)*8,impactAt:this.elapsed+2.2,
+      damage:12+(phase-1)*5,teamDamage:phase===4?24:12,points:kind==='cone'?conePoints(target?.x||220,y):null};
     this.bossAction('windup',0,true);this.nextAttack=this.elapsed+(phase===4?4.2:6.5);
     this.emit('BOSS_TELEGRAPH',{...this.warning,duration:2.2,phase});
   }
@@ -211,6 +261,7 @@ export class RaidEngine{
   return {round:this.round,seq:this.seq,time:Math.ceil(this.time),elapsed:round(this.elapsed),hp:this.hp,maxHP:this.maxHP,
    team:this.team,maxTeam:this.maxTeam,phase:this.phase,shield:this.shield,cast:this.cast?.remaining||0,
    bossState:this.bossState,bossActionSeq:this.bossActionSeq,bossActionAt:this.bossActionAt,bossActionDuration:this.bossActionDuration,bossHitUntil:this.bossHitUntil,warning:this.warning,energy:this.energy,
+   illusion:this.illusion?{...this.illusion}:null,adds:this.adds.map(a=>({...a})),
    players:visible.map(p=>({...p,x:round(p.x),y:round(p.y),hp:round(p.hp)})),count:everyone.length,
    factions:fac,leaders:this.leaders,events:this.events,result:this.result,rest:Math.ceil(this.rest),demo:this.demo};
  }

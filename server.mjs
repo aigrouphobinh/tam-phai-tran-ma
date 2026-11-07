@@ -1,122 +1,108 @@
 import http from 'node:http';
-import {readFile,writeFile,rename} from 'node:fs/promises';
-import {resolve,join,extname,sep} from 'node:path';
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
+import {resolve,extname,sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {randomBytes,timingSafeEqual} from 'node:crypto';
 import {RaidEngine} from './engine.mjs';
+import {InputGate} from './input.mjs';
+import {CheckpointStore} from './persistence.mjs';
 
-const ROOT=resolve(fileURLToPath(new URL('./public/',import.meta.url)));
-const PORT=Number(process.env.PORT||8788);
-const raid=new RaidEngine();
-const clients=new Set();
-let mode='stop',status='Chờ kết nối',disconnect=()=>{},viewerCount=0,seq=0;
-const loopback=['127.0.0.1','::1'];
-const names=['BaoLong','MinhAnh','ThanhVy','AiNhi','HoangNam','AnhKiet','TuyetNhi','TieuDao','YenNhi','PhongVan','HaiYen','LinhNhi','NhatLong','HuyenVu','ThienTam','BachLien','TienDao','ThanhLam'];
-function demoJoin(){
- raid.start();raid.demo=true;
- names.forEach((name,i)=>raid.join('demo-'+i,name,['kiem','huyen','linh'][i%3]));
- raid.rank();status='Đang chạy sân luyện thật (DEMO)';
-}
-function postGift(){
- if(mode!=='demo')throw Error('Chỉ thử quà trên chế độ luyện tập');
- const n=seq++,p=raid.players.get('demo-'+n%names.length);
- raid.gift(p.id,p.name,[1,5,20,100,500][n%5],1,'demo-gift-'+n);
-}
-const streamData=()=>JSON.stringify({...raid.snapshot(),status,mode,viewerCount});
-function sendAll(){const payload='data: '+streamData()+'\n\n';for(const res of clients)try{if(res.writableEnded){clients.delete(res);continue}res.write(payload)}catch{clients.delete(res)}}
-let previous=performance.now();let broadcastAt=0;let storedRound=0;
-setInterval(()=>{
- const now=performance.now(),dt=Math.min(.2,(now-previous)/1000);previous=now;
- if(mode!=='stop'){raid.tick(dt);raid.demo=mode==='demo'}
- if(raid.result&&storedRound!==raid.round){storedRound=raid.round;
-   const out=JSON.stringify(raid.scores);writeFile(new URL('./scores.json.tmp',import.meta.url),out)
-     .then(()=>rename(new URL('./scores.json.tmp',import.meta.url),new URL('./scores.json',import.meta.url)))
-     .catch(err=>console.error('score storage:',err.message));
- }
- if(now-broadcastAt>=100){sendAll();broadcastAt=now}
-},50);
-
-function sendLive(room){
- let stop=false,connection=null,attempt=0,timer=null;
- const seenGifts=new Map();
- const normalizedUser=d=>({id:String(d.user?.uniqueId||d.uniqueId||d.userId||''),name:d.user?.nickname||d.nickname||d.uniqueId||'Người xem'});
- async function connect(){
-  try{
-   const {TikTokLiveConnection,WebcastEvent,ControlEvent}=await import('tiktok-live-connector');
-   if(stop)return;
-   const instance=new TikTokLiveConnection(room,{processInitialData:false,authenticateWs:false});connection=instance;
-   const valid=()=>!stop&&instance===connection;
-   instance.on(WebcastEvent.CHAT,d=>{if(!valid())return;const u=normalizedUser(d);raid.chat(u.id,u.name,d.comment)});
-   instance.on(WebcastEvent.LIKE,d=>{if(!valid())return;const u=normalizedUser(d);raid.like(u.id,d.likeCount)});
-   instance.on(WebcastEvent.GIFT,d=>{
-    if(!valid())return;
-    const u=normalizedUser(d),gift=d.giftDetails||d.gift||{};
-    const kind=Number(d.giftType??gift.giftType??d.gift?.type),streak=kind===1;
-    if(streak&&!['true','1'].includes(String(d.repeatEnd??d.repeat_end)))return;
-    const price=Number(d.diamondCount??gift.diamondCount??d.extendedGiftInfo?.diamondCount??0);
-    const count=Number(d.repeatCount??d.comboCount??1);
-    if(!Number.isSafeInteger(price)||price<=0)return;
-    const key=String(d.groupId||d.common?.msgId||d.msgId||`${u.id}-${Date.now()}`);
-    if(seenGifts.has(key))return;seenGifts.set(key,Date.now());
-    if(seenGifts.size>12000)seenGifts.delete(seenGifts.keys().next().value);
-    raid.gift(u.id,u.name,price,count,key);
-   });
-   if(WebcastEvent.MEMBER)instance.on(WebcastEvent.MEMBER,d=>{if(!valid())return;
-      // Joiners are logged but not assigned a faction before a chat/gift event.
-      const u=normalizedUser(d);if(u.id)raid.emit('ARRIVAL',{actorId:u.id,name:u.name})});
-   if(WebcastEvent.ROOM_USER)instance.on(WebcastEvent.ROOM_USER,d=>{if(valid())viewerCount=Number(d.viewerCount)||viewerCount});
-   const retry=e=>{
-    if(!valid())return;connection=null;status='Mất LIVE: '+String(e?.message||e).slice(0,85);
-    try{Promise.resolve(instance.disconnect()).catch(()=>{})}catch{}
-    clearTimeout(timer);timer=setTimeout(connect,Math.min(30000,2000*2**Math.min(attempt++,4)));
-   };
-   instance.on(ControlEvent.DISCONNECTED,()=>retry('đã ngắt kết nối'));
-   instance.on(ControlEvent.ERROR,e=>{if(valid())status='LIVE error: '+String(e?.message||e).slice(0,85)});
-   await instance.connect();if(valid()){status='LIVE @'+room;attempt=0}
-  }catch(err){status='Kết nối thất bại: '+err.message;clearTimeout(timer);
-    if(!stop)timer=setTimeout(connect,Math.min(30000,2000*2**Math.min(attempt++,4)))}
- }
- connect();return()=>{stop=true;clearTimeout(timer);try{Promise.resolve(connection?.disconnect()).catch(()=>{})}catch{}}
-}
-const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.webp':'image/webp','.png':'image/png','.wav':'audio/wav','.mp3':'audio/mpeg','.json':'application/json'};
-http.createServer(async(req,res)=>{
- try{
-  const u=new URL(req.url,`http://127.0.0.1:${PORT}`);
-  if(u.pathname==='/events'){
-   res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});
-   clients.add(res);req.on('close',()=>clients.delete(res));res.write('data: '+streamData()+'\n\n');return;
-  }
-  if(u.pathname==='/api/control'&&req.method==='POST'){
-   const expectedOrigins=[`http://127.0.0.1:${PORT}`,`http://localhost:${PORT}`];
-   const host=String(req.headers.host||'');
-   if(!['127.0.0.1:'+PORT,'localhost:'+PORT].includes(host)||
-      (req.headers.origin&&!expectedOrigins.includes(req.headers.origin))||
-      !String(req.headers['content-type']||'').startsWith('application/json')){res.writeHead(403).end('Forbidden');return}
-   let body='';for await(const chunk of req){body+=chunk;if(body.length>4096)throw Error('Body quá dài')}
-   const {action,room,faction,id,name,coins}=JSON.parse(body);
-   if(!['live','demo','stop','gift','join','skill','reset'].includes(action))throw Error('Lệnh không hợp lệ');
-   if(action==='demo'){disconnect();disconnect=()=>{};mode='demo';demoJoin()}
-   else if(action==='live'){
-    if(!/^[a-zA-Z0-9_.]{1,32}$/.test(room||''))throw Error('Tên TikTok không hợp lệ');
-    disconnect();raid.start();mode='live';status='Đang kết nối LIVE';disconnect=sendLive(room)
-   }else if(action==='stop'){disconnect();disconnect=()=>{};mode='stop';status='Đã dừng kết nối'}
-   else if(action==='reset'){raid.start();raid.demo=mode==='demo';status='Đã reset trận'}
-   else if(mode!=='demo')throw Error('Chỉ sử dụng các thao tác kiểm thử khi DEMO đang bật');
-   else if(action==='gift')postGift();
-   else if(action==='join'){
-     if(!['kiem','huyen','linh'].includes(faction))throw Error('Môn phái không hợp lệ');
-     raid.join('manual-'+(++seq),name||'Đệ tử mới',faction)
-   }else if(action==='skill'){
-     const p=raid.players.get(String(id))||[...raid.players.values()].find(x=>x.faction===faction);
-     if(!p)throw Error('Chưa có người chơi');const unit=[1,5,20,100,500][Math.min(4,Math.max(0,Number(coins)-1))];
-     raid.gift(p.id,p.name,unit,1,'preview-'+(++seq));
+export async function createGameServer({port=Number(process.env.PORT||8788),dataDir=resolve(fileURLToPath(new URL('./.runtime/',import.meta.url))),restore=true}={}){
+ const ROOT=resolve(fileURLToPath(new URL('./public/',import.meta.url)));
+ const raid=new RaidEngine(),store=new CheckpointStore(resolve(dataDir,'checkpoint.json'));
+ const recovered=restore&&await store.load(raid);
+ const gate=new InputGate(raid);
+ await mkdir(dataDir,{recursive:true});
+ let token;try{token=(await readFile(resolve(dataDir,'bridge-token'),'utf8')).trim();}catch{token=randomBytes(24).toString('hex');await writeFile(resolve(dataDir,'bridge-token'),token,{mode:0o600});}
+ let mode='stop',room='',status=recovered?'Đã khôi phục trận · chọn nguồn LIVE để tiếp tục':'Chờ chọn nguồn phát',viewers=0,seq=Date.now(),lastFrame=0,frames=0,lastDecodeError='',disconnect=()=>{};
+ const clients=new Set();
+ const state=()=>({...raid.snapshot(),mode,status,room,viewerCount:viewers,ingestion:gate.snapshot(),
+  bridge:{frames,lastFrame,error:lastDecodeError,connected:mode==='bridge'&&Date.now()-lastFrame<20000},storageError:store.error});
+ const broadcast=()=>{const payload='data: '+JSON.stringify(state())+'\n\n';for(const res of clients){if(res.writableEnded||res.destroyed||res.writableLength>1e6){clients.delete(res);res.destroy();continue;}res.write(payload);}};
+ function training(){raid.pendingGifts=[];raid.start();raid.eventLedger.clear();gate.seen.clear();raid.sessionRoom='';raid.sessionSource='practice';mode='demo';room='';status='Sân luyện · chỉ nhận thao tác thử';}
+ function command({action,faction,name,id,tier,coins,room:requestedRoom,text,count}){
+  if(!['bridge','demo','stop','reset','join','skill','gift','chat','like','squad'].includes(action))throw Error('Lệnh không hợp lệ');
+  if(action==='bridge'){
+   const nextRoom=String(requestedRoom||'').trim().replace(/^@/,'');if(!/^[a-zA-Z0-9_.]{1,32}$/.test(nextRoom))throw Error('Nhập tên kênh TikTok, không kèm đường link');
+   disconnect();disconnect=()=>{};
+   if(raid.sessionSource==='practice'||raid.sessionRoom&&raid.sessionRoom!==nextRoom){raid.pendingGifts=[];raid.start();raid.eventLedger.clear();gate.seen.clear();viewers=0;}
+   room=nextRoom;raid.sessionRoom=nextRoom;raid.sessionSource='live';mode=action;raid.demo=false;lastDecodeError='';
+   status='Chờ tab TikTok @'+room;
+  }else if(action==='demo'){disconnect();disconnect=()=>{};training();}
+  else if(action==='stop'){disconnect();disconnect=()=>{};mode='stop';status='Đã tạm dừng';}
+  else if(action==='reset'){raid.start({retainPlayers:true});status=mode==='demo'?'Sân luyện · trận mới':'Đã mở trận mới';}
+  else{
+   if(mode!=='demo')throw Error('Thao tác thử chỉ dùng trong sân luyện');
+   if(action==='join'){
+    if(!['kiem','huyen','linh'].includes(faction))throw Error('Chọn môn phái hợp lệ');
+    raid.join('practice-'+(++seq),name||'Đệ tử luyện tập '+seq,faction);
+   }else if(action==='squad'){
+    for(const [i,f] of ['kiem','huyen','linh'].entries())raid.join('practice-'+(++seq),['Kiếm khách','Phù sư','Dược sư'][i]+' '+String(seq).slice(-3),f);
+   }else{
+    const p=raid.players.get(String(id))||[...raid.players.values()].find(p=>p.faction===faction)||[...raid.players.values()][0];
+    if(!p)throw Error('Thêm đệ tử trước khi thử kỹ năng');
+    if(action==='skill'||action==='gift'){
+     const t=Math.min(5,Math.max(1,Math.trunc(Number(tier||coins)||1)));raid.gift(p.id,p.name,[1,5,20,100,500][t-1],1,'practice-'+(++seq));
+    }else if(action==='chat')raid.chat(p.id,p.name,text);
+    else if(action==='like')raid.like(p.id,count||15);
    }
-   sendAll();res.writeHead(200,{'Content-Type':'application/json'}).end(JSON.stringify({ok:true,status,round:raid.round}));return;
   }
-  let pathname=(u.pathname==='/'||u.pathname==='/admin')?'/admin.html':u.pathname==='/obs'?'/obs.html':u.pathname==='/models'?'/models.html':u.pathname==='/animation-studio'?'/animation-studio.html':u.pathname;
-  if(pathname.includes('\0')||pathname.includes('\\')){res.writeHead(400).end();return}
-  const abs=resolve(ROOT,'.'+pathname);
-  if(!abs.startsWith(ROOT+sep)){res.writeHead(403).end();return}
-  const type=mime[extname(abs)];if(!type){res.writeHead(404).end();return}
-  const bytes=await readFile(abs);res.writeHead(200,{'Content-Type':type,'Cache-Control':(/\.(wav|mp3|webp)$/.test(pathname))?'public,max-age=604800':'no-store'}).end(bytes)
- }catch(err){const status=err.code==='ENOENT'?404:400;res.writeHead(status,{'Content-Type':'text/plain; charset=utf-8'}).end(err.message)}
-}).listen(PORT,'127.0.0.1',()=>console.log(`Tam Phái Trấn Ma Product: http://127.0.0.1:${PORT}/admin · OBS: /obs`));
+  broadcast();store.save(raid);return {ok:true,status,round:raid.round};
+ }
+ const json=(res,code,obj)=>{res.writeHead(code,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(obj));};
+ async function body(req,max=16000){const parts=[];let n=0;for await(const chunk of req){n+=chunk.length;if(n>max)throw Error('Dữ liệu vượt giới hạn');parts.push(chunk);}return JSON.parse(Buffer.concat(parts).toString('utf8'));}
+ const sameOrigin=req=>{const host=req.headers.host||'',origin=req.headers.origin;return /^(localhost|127\.0\.0\.1):\d+$/.test(host)&&(!origin||origin===`http://${host}`);};
+ const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.webp':'image/webp','.png':'image/png','.mp3':'audio/mpeg','.json':'application/json','.zip':'application/zip'};
+ const server=http.createServer(async(req,res)=>{try{
+  const url=new URL(req.url,'http://127.0.0.1');
+  if(url.pathname==='/api/tiktok/frame'){
+   const origin=req.headers.origin||'';if(/^chrome-extension:\/\/[a-p]{32}$/.test(origin)){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin');res.setHeader('Access-Control-Allow-Headers','Content-Type, Authorization');res.setHeader('Access-Control-Allow-Methods','POST, OPTIONS');}
+   if(req.method==='OPTIONS'){res.writeHead(204).end();return;}
+   if(req.method!=='POST'){json(res,405,{error:'POST required'});return;}
+   const supplied=Buffer.from(String(req.headers.authorization||'').replace(/^Bearer /,'')),expected=Buffer.from(token);
+   if(supplied.length!==expected.length||!timingSafeEqual(supplied,expected)){json(res,401,{error:'Mã ghép nối không đúng'});return;}
+   if(mode!=='bridge'){json(res,409,{error:'Chọn kết nối qua trình duyệt trên bảng điều khiển'});return;}
+   const data=await body(req,3_000_000);
+   if(String(data.room||'').toLowerCase()!==room.toLowerCase()){json(res,409,{error:'Tab TikTok khác kênh đã chọn'});return;}
+   if(typeof data.frame!=='string'||!/^[A-Za-z0-9+/]*={0,2}$/.test(data.frame))throw Error('Frame không hợp lệ');
+   try{const {decodeFrame}=await import('./bridge.mjs');const events=await decodeFrame(Buffer.from(data.frame,'base64'));
+    for(const e of events){if(e.type==='viewers')viewers=e.data.count;else gate.receive(e.type,e.data);}
+    frames++;lastFrame=Date.now();lastDecodeError='';status='Đang nhận TikTok @'+room;
+    json(res,200,{ok:true,received:events.length});
+   }catch(e){lastDecodeError=String(e.message).slice(0,180);json(res,422,{error:'Không giải mã được frame TikTok: '+lastDecodeError});}return;
+  }
+  if(url.pathname==='/api/control'){
+   if(req.method!=='POST'||!sameOrigin(req)||!String(req.headers['content-type']).startsWith('application/json')){json(res,403,{error:'Chỉ điều khiển trên máy đang chạy game'});return;}
+   json(res,200,command(await body(req)));return;
+  }
+  if(url.pathname==='/api/bridge'){
+   if(!sameOrigin(req)||req.headers['sec-fetch-site']==='cross-site'){json(res,403,{error:'Local only'});return;}
+   json(res,200,{token,endpoint:`http://127.0.0.1:${server.address().port}/api/tiktok/frame`});return;
+  }
+  if(url.pathname==='/api/health'){json(res,200,{ok:true,version:'3.0.0',recovered,mode});return;}
+  if(url.pathname==='/api/state'){json(res,200,state());return;}
+  if(url.pathname==='/events'){
+   res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});
+   clients.add(res);res.write('data: '+JSON.stringify(state())+'\n\n');req.on('close',()=>clients.delete(res));return;
+  }
+  if(url.pathname==='/engine.mjs'){res.writeHead(200,{'Content-Type':mime['.mjs']});res.end(await readFile(new URL('./engine.mjs',import.meta.url)));return;}
+  const routes={'/':'/index.html','/admin':'/index.html','/admin/':'/index.html','/obs':'/obs.html','/obs/':'/obs.html','/models':'/models.html','/models/':'/models.html','/animation-studio':'/animation-studio.html'};
+  const path=decodeURIComponent(routes[url.pathname]||url.pathname);
+  if(path.includes('\0')||path.includes('\\'))throw Error('Đường dẫn không hợp lệ');
+  const abs=resolve(ROOT,'.'+path);if(!abs.startsWith(ROOT+sep)||!mime[extname(abs)]){res.writeHead(404).end();return;}
+  const bytes=await readFile(abs);res.writeHead(200,{'Content-Type':mime[extname(abs)],'Cache-Control':'no-cache','X-Content-Type-Options':'nosniff'});res.end(bytes);
+ }catch(e){json(res,e.code==='ENOENT'?404:400,{error:e.message});}});
+ let previous=performance.now(),lastBroadcast=0,lastSave=0;
+ const timer=setInterval(()=>{const now=performance.now(),dt=Math.min(.2,(now-previous)/1000);previous=now;
+  if(mode!=='stop'){raid.tick(dt);raid.demo=mode==='demo';}
+  if(now-lastBroadcast>100){broadcast();lastBroadcast=now;}
+  if(now-lastSave>3000&&mode!=='stop'){lastSave=now;store.save(raid);}
+ },50);
+ server.on('close',()=>{clearInterval(timer);disconnect();for(const res of clients)res.end();});
+ await new Promise((ok,fail)=>{server.once('error',fail);server.listen(port,'127.0.0.1',ok);});
+ return {server,raid,gate,command,state,store,token,close:async()=>{clearInterval(timer);disconnect();for(const res of clients)res.end();await store.save(raid);await new Promise(ok=>server.close(ok));}};
+}
+if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
+ const app=await createGameServer();console.log(`Tam Phái Trấn Ma · http://127.0.0.1:${app.server.address().port} · OBS /obs`);
+ for(const sig of ['SIGINT','SIGTERM'])process.once(sig,()=>app.close().then(()=>process.exit()));
+}

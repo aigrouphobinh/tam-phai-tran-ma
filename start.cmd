@@ -3,13 +3,18 @@ setlocal
 cd /d "%~dp0"
 where node >nul 2>&1
 if errorlevel 1 (
-  echo [ERROR] Can Node.js 22 hoac moi hon.
-  pause
-  exit /b 1
+ echo Can Node.js 22+ va chay setup.cmd truoc.
+ pause
+ exit /b 1
 )
-echo Tam Phai Tran Ma V2 - http://127.0.0.1:8788/admin
+if not exist node_modules\tiktok-live-connector (
+ echo Hay chay setup.cmd truoc lan dau.
+ pause
+ exit /b 1
+)
+echo Tam Phai Tran Ma - http://127.0.0.1:8788
 echo OBS URL: http://127.0.0.1:8788/obs
-echo Nhan Ctrl+C de dung server.
-start "" "http://127.0.0.1:8788/admin"
+echo Nhan Ctrl+C de luu va dung server.
+start "" "http://127.0.0.1:8788"
 node server.mjs
 if errorlevel 1 pause

@@ -1,3 +1,4 @@
+import {GameSession} from './session.js';
 import {Effects} from './fx.js';
 import {SoundBank} from './audio.js';
 import {ModelAnimator} from './models2d.js';
@@ -53,16 +54,29 @@ function fighter(p,t){
 }
 function namesAndLabels(s,t){
  const byFaction={kiem:0,huyen:0,linh:0};
- for(const p of s.players){if(!p.leader&&byFaction[p.faction]++>=2)continue;
+ for(const p of s.players){byFaction[p.faction]++;
   const a=anims.get(p.id)||{x:p.x,y:p.y,rx:p.x,ry:p.y};const k=clamp((performance.now()-a.received)/Math.max(80,a.interval||120)),x=lerp(a.x,a.rx,k),y=lerp(a.y,a.ry,k)-69*(p.scale||.82);
   ctx.save();ctx.font='bold 11px sans-serif';const label=(p.leader?'♛ ':'')+p.name.slice(0,12),width=Math.min(110,ctx.measureText(label).width+17);
   panel(x-width/2,y-14,width,19,p.leader?'#ffdd82':COLORS[p.faction],.88);
   text(label,x,y,11,p.leader?'#ffe6a3':'#f9f5ed','center','sans-serif');ctx.restore();
  }
 }
+function mechanics(t,s){
+ if(s.illusion){const target=s.illusion.target;for(let i=1;i<=3;i++){
+  const x=95+i*90;panel(x-33,290,66,64,i===target?'#ed6a7d':'#8b68aa',.87);
+  text(i===target?'印':'影',x,322,28,i===target?'#ff7a85':'#bc9cdf','center','Georgia',true);
+  text('!'+i,x,343,14,'#ead6bd','center','sans-serif');
+ }}
+ for(const a of s.adds||[]){ctx.save();ctx.globalAlpha=.65;ctx.filter='hue-rotate(25deg)';
+  skins.drawActor(ctx,'boss',s,t,a.x,a.y,models,.25);ctx.restore();
+  progress(a.x-23,a.y-73,46,6,a.hp/a.maxHP,'#bb79e8');text('MA ẢNH',a.x,a.y+13,9,'#e3bbff','center','sans-serif');
+ }
+ for(const p of s.players||[])if(p.dodgeUntil>s.elapsed){glow(p.x,p.y-40,28,'#a8ddff',.5);text('NÉ',p.x,p.y-90,12,'#bfedff','center','sans-serif');}
+}
 function scene(t,s){
  ctx.save();if(fx.shake>0)ctx.translate(rand(-5,5)*fx.shake,rand(-4,4)*fx.shake);
  fx.behind(ctx,s,t);drawBoss(t,s);
+ mechanics(t,s);
  // Live simulation position & state (never hardcoded demo characters).
  const players=[...(s.players||[])].sort((a,b)=>a.y-b.y);
  for(const p of players)fighter(p,t);
@@ -70,8 +84,8 @@ function scene(t,s){
 }
 function hud(t,s){
  const hp=clamp(s.hp/Math.max(1,s.maxHP)),phase=s.phase||1,sec=Math.max(0,Math.ceil(s.time||0));
- panel(13,12,142,31,'#db7390');ctx.fillStyle='#bd244c';roundRect(20,17,68,21,4);ctx.fill();text('● LIVE',54,33,15,'#fff','center','sans-serif');
- text('◉ '+Number(s.viewerCount||0).toLocaleString('vi-VN')+' xem',95,33,12,'#e3efff','center','sans-serif');
+ panel(13,12,142,31,'#db7390');ctx.fillStyle='#bd244c';roundRect(20,17,68,21,4);ctx.fill();text(s.mode==='demo'?'LUYỆN':s.mode==='stop'?'DỪNG':s.mode==='bridge'&&!s.bridge?.connected?'CHỜ':'● LIVE',54,33,13,'#fff','center','sans-serif');
+ text(Number(s.viewerCount||0).toLocaleString('vi-VN')+' xem',122,33,10,'#e3efff','center','sans-serif');
  panel(164,12,362,51,'#d5ad68');text('TAM PHÁI TRẤN MA',345,44,25,'#ffdfa1','center','Georgia',true);
  panel(13,74,514,117,'#cf9b61');
  text('HỒNG LIÊN MA TƯỚNG',28,96,20,'#ffe1c3');
@@ -108,13 +122,13 @@ function hud(t,s){
  panel(13,915,514,35,'#c9a065',.94);
  text('BÌNH LUẬN   !kiem  ·  !huyen  ·  !linh  ·  !skill',270,938,13,'#fff0d2','center','sans-serif');
  if(s.mode==='demo'){ctx.fillStyle='#fff1b8';text('SÂN LUYỆN · DEMO',270,677,11,'#fff1b8','center','sans-serif')}
+ if(!s.warning&&!s.cast){text('PHONG ẤN',26,708,11,'#c3d7c0','left','sans-serif');progress(110,698,405,12,(s.team||0)/(s.maxTeam||1000),'#81cba8');}
+ if(s.count===0&&connected){panel(71,569,398,63,'#d8b17b',.93);text('CHỜ ĐỆ TỬ XUẤT TRẬN',270,595,20,'#ffe3b0','center');text('Bình luận !kiem · !huyen · !linh',270,618,13,'#cdc4d9','center','sans-serif');}
+ if(s.mode==='stop'){panel(174,638,192,29,'#bfa98a');text('ĐANG TẠM DỪNG',270,658,13,'#e5cfa9','center','sans-serif');}
  if(!connected){panel(95,334,350,49,'#d87c85');text('ĐANG KẾT NỐI SERVER…',270,367,18,'#fff0d2','center','sans-serif')}
 }
 function init(){
- const stream=new EventSource('/events');
- stream.onopen=()=>connected=true;stream.onerror=()=>connected=false;
- stream.onmessage=e=>{
-  let next;try{next=JSON.parse(e.data)}catch{return}
+ new GameSession(next=>{
   if(next.round!==lastRound){lastRound=next.round;lastEvent=next.events?.at(-1)?.id||0;fx.active=[];fx.particles=[];models.states.clear();anims.clear();}
   else{
    const events=(next.events||[]).filter(ev=>ev.id>lastEvent).sort((a,b)=>a.id-b.id);
@@ -140,16 +154,17 @@ function init(){
   const activeIds=new Set((next.players||[]).map(p=>p.id));models.dropInactive(activeIds);
   for(const id of anims.keys())if(!activeIds.has(id))anims.delete(id);
   state=next;
- };
+ },value=>connected=value);
 }
-let frames=0,lastTick=performance.now();
+let frames=0,lastTick=performance.now(),metricsAt=performance.now();
+const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 function render(now){requestAnimationFrame(render);
  // Delta is measured between frames actually drawn (not every RAF callback).
  if(now-lastTick<1000/60)return;const dt=clamp((now-lastTick)/1000,0,.065);lastTick=now;frameAt=now;
- const t=now/1000;fx.tick(dt);drawBackground(t);
+ const t=now/1000;fx.tick(dt);if(reducedMotion){fx.shake=0;fx.flash=0;}drawBackground(t);
  if(state){scene(t,state);hud(t,state)}else{text('ĐANG KẾT NỐI ĐẾN PHONG MA ĐÀI…',270,420,18,'#fff1c6','center')}
  if(fx.flash>0){ctx.fillStyle=`rgba(255,89,129,${fx.flash*.45})`;ctx.fillRect(0,190,540,540)}
- frames++;
+ frames++;if(now-metricsAt>=1000){parent.postMessage({type:'raid-metrics',fps:Math.round(frames*1000/(now-metricsAt)),assets:skins.images.size},location.origin);frames=0;metricsAt=now;}
 }
 const audioButton=document.querySelector('#audio-enable');
 audioButton.addEventListener('click',async()=>{

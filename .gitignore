@@ -6,3 +6,6 @@ scores.json.tmp
 save.json
 .env
 .env.*
+
+.runtime/
+dist/

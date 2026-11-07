@@ -121,7 +121,7 @@ export class Effects{
    ctx.save();ctx.globalAlpha=.18+.20*Math.abs(Math.sin(t*6));ctx.fillStyle='#f33a69';ctx.strokeStyle='#ff5267';ctx.lineWidth=2.5;ctx.shadowColor='#ff4f7b';ctx.shadowBlur=16;
    if(w.kind==='circle'){ctx.beginPath();ctx.ellipse(w.x,w.y,w.radius,w.radius*.42,0,0,TAU);ctx.fill();ctx.stroke();}
    else if(w.kind==='sweep'){ctx.fillRect(45,w.y-30,470,80);ctx.strokeRect(45,w.y-30,470,80)}
-   else{ctx.beginPath();ctx.moveTo(409,390);ctx.lineTo(170,570);ctx.lineTo(460,685);ctx.closePath();ctx.fill();ctx.stroke()}
+   else{const pts=w.points||[[409,390],[170,570],[460,685]];ctx.beginPath();ctx.moveTo(...pts[0]);ctx.lineTo(...pts[1]);ctx.lineTo(...pts[2]);ctx.closePath();ctx.fill();ctx.stroke()}
    ctx.restore();ring(ctx,w.x,w.y,20+p*100,'#ff4c78',.9, .35,3);
   }
   if(state?.shield>0){const r=58+Math.sin(t*8)*2;ring(ctx,418,452,r,'#c77dff',.75,.28,3);runeCircle(ctx,418,460,80,t,'#b77aff',.38)}
