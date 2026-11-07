@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "revision": "concept-cutouts-v1",
+  "license": "User-requested original AI-generated concept assets",
+  "actors": {
+    "kiem": {
+      "texture": "/assets/characters/kiem.webp",
+      "anchor": [
+        0.5,
+        0.97
+      ],
+      "renderHeight": 92,
+      "sourceArt": "Tam Phai Tran Ma original generated concept artwork — kiem",
+      "quality": "flat RGBA cutout; production layered rig pending",
+      "layers": []
+    },
+    "huyen": {
+      "texture": "/assets/characters/huyen.webp",
+      "anchor": [
+        0.5,
+        0.97
+      ],
+      "renderHeight": 94,
+      "sourceArt": "Tam Phai Tran Ma original generated concept artwork — huyen",
+      "quality": "flat RGBA cutout; production layered rig pending",
+      "layers": []
+    },
+    "linh": {
+      "texture": "/assets/characters/linh.webp",
+      "anchor": [
+        0.5,
+        0.97
+      ],
+      "renderHeight": 92,
+      "sourceArt": "Tam Phai Tran Ma original generated concept artwork — linh",
+      "quality": "flat RGBA cutout; production layered rig pending",
+      "layers": []
+    },
+    "boss": {
+      "texture": "/assets/characters/boss.webp",
+      "anchor": [
+        0.5,
+        0.97
+      ],
+      "renderHeight": 305,
+      "sourceArt": "Tam Phai Tran Ma original generated concept artwork — boss",
+      "quality": "flat RGBA cutout; production layered rig pending",
+      "layers": []
+    }
+  }
+}
