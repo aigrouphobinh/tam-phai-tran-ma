@@ -74,3 +74,39 @@ test('missing texture safely falls back without lying that rig is production rea
  assert.equal(skin.drawPlayer(g,{faction:'kiem'},1,1,1,new ModelAnimator()),false);
  assert.equal(trace.images,0);
 });
+
+
+test('default browser fetch retains Window receiver and loads all four real sprites',async()=>{
+ const original=globalThis.fetch;
+ const called=[];
+ globalThis.fetch=function(url,options){
+  assert.equal(this,globalThis,'native fetch must retain Window/globalThis receiver');
+  called.push({url,options});
+  return Promise.resolve({ok:true,json:async()=>manifest});
+ };
+ try{
+  // No injected fetchFn: this is the exact production initialization path.
+  const skin=new SkinRenderer({ImageCtor:TestImage});
+  const status=await skin.load();
+  assert.equal(status.ready,true,JSON.stringify(status.errors));
+  assert.equal(status.loaded,4);
+  assert.deepEqual(Object.values(status.actors),[true,true,true,true]);
+  assert.equal(called.length,1);
+  assert.equal(called[0].url,'/assets/characters/manifest.json');
+  assert.equal(called[0].options.cache,'no-cache');
+  const {g,trace}=fakeCanvas();
+  const animator=new ModelAnimator();
+  for(const k of names){
+   if(k==='boss'){
+    const state={bossState:'windup',cast:2,hp:50000,phase:2};
+    animator.observeBoss(state,1000);
+    assert.equal(skin.drawBoss(g,state,1.2,animator),true);
+   }else{
+    const player={id:'player-'+k,faction:k,state:'attack',actionSeq:1,scale:.82,hp:100};
+    animator.observe(player,1000);
+    assert.equal(skin.drawPlayer(g,player,1.2,160,450,animator),true);
+   }
+  }
+  assert.ok(trace.images>0,'character textures must actually reach canvas drawImage');
+ }finally{globalThis.fetch=original}
+});
