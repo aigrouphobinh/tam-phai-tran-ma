@@ -2,6 +2,7 @@
 // All combat results remain authoritative in engine.mjs; this module only draws them.
 // A single image is a high-quality sprite, NOT a fully articulated bone animation.
 import {getPose} from './models2d.js';
+import {drawDeformedSprite} from './sprite-mesh.js';
 const FACTIONS=['kiem','huyen','linh','boss'],clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const safePath=s=>typeof s==='string'&&/^\/assets\/characters\/[a-z0-9_-]+\.(png|webp)$/.test(s);
 export function validateSkinManifest(m){
@@ -90,7 +91,12 @@ export class SkinRenderer{
    }
   }else{
    const img=this.images.get(a.texture),w=h*img.naturalWidth/img.naturalHeight;
-   g.drawImage(img,-w*a.anchor[0],-h*a.anchor[1],w,h);
+   // Current four assets are approved RGBA cutouts, not individual bone textures.
+   // Apply a light, timed strip-mesh deformation rather than rotating a flat poster.
+   // Each strip samples the real original texture; gameplay remains server-side.
+   if(!drawDeformedSprite(g,img,0,0,w,h,a.anchor,{
+    state:displayState,age,t,style:key,duration:track?.duration||.55
+   }))g.drawImage(img,-w*a.anchor[0],-h*a.anchor[1],w,h);
   }
   if(state==='hit'){g.globalCompositeOperation='screen';g.globalAlpha=Math.max(0,.25*(1-age/.42));g.fillStyle='#ff6985';g.fillRect(-h*.36,-h*.95,h*.72,h*.95)}
   g.restore();return true;
