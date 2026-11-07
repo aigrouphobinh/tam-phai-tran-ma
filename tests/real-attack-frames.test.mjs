@@ -28,8 +28,8 @@ test('12 independent painted animation frame slots are present as a real WebP re
  assert.deepEqual([clip.frames,clip.columns,clip.rows,clip.frameWidth,clip.frameHeight,clip.fps],
   [12,4,3,128,128,20]);
  assert.equal(clip.loop,false);
- assert.equal(clip.renderScale,1.5);
- assert.equal(validateSkinManifest(manifest).actors.kiem.animations.attack.renderScale,1.5);
+ assert.equal(clip.renderScale,1.9);
+ assert.equal(validateSkinManifest(manifest).actors.kiem.animations.attack.renderScale,1.9);
  const bytes=readFileSync(new URL('../public/assets/characters/kiem-attack.webp',import.meta.url));
  assert.ok(bytes.byteLength>18000,'atlas should not be a tiny dummy');
  assert.equal(bytes.toString('ascii',0,4),'RIFF');
@@ -55,5 +55,5 @@ test('attack mode picks sequential source frames, not one picture/mesh strips',a
  assert.deepEqual(calls.map(c=>[c[1],c[2]]),[
   [0,0], [384,0], [0,256]
  ]);
- assert.equal(calls[0][7],138,'clip renderScale enlarges hand-painted art to game size');
+ assert.ok(Math.abs(calls[0][7]-174.8)<0.01,'clip renderScale normalizes art to live-game actor size');
 });
