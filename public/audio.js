@@ -1,4 +1,4 @@
-// Spatial sound mixer. All 15 WAV files are authored locally by generate_sfx.py.
+// Spatial sound mixer. 15 locally authored audio tracks are served as compressed MP3.
 const NAMES=['temple_ambience','sword_whoosh','sword_impact','sword_rain','lightning','magic_seal','heal_lotus','shield_bloom','shield_break','dragon_roar','warning','boss_cast','boss_impact','revive','victory'];
 export class SoundBank{
  constructor(){this.context=null;this.buffers=new Map();this.master=null;this.music=null;this.sfx=null;this.ambience=null;this.enabled=false;
@@ -47,7 +47,14 @@ export class SoundBank{
      f==='huyen'?(t>=2?'lightning':'magic_seal'):
      t>=4?'revive':t>=2?'shield_bloom':'heal_lotus';
    this.play(name,{volume:Math.min(.9,.3+t*.12),x:event.x??270});
-  }else if(event.type==='DAMAGE'&&event.source==='basic')this.play('sword_impact',{volume:.11,x:event.x});
+  }else if(event.type==='BASIC_ATTACK_START'){
+    // Windup audible as the model starts its swing/cast, before server-validated impact.
+    this.play(f==='kiem'?'sword_whoosh':f==='huyen'?'magic_seal':'heal_lotus',
+      {volume:.12,x:event.x??270});
+  }else if(event.type==='DAMAGE'&&event.source==='basic'){
+    this.play(f==='kiem'?'sword_impact':f==='huyen'?'lightning':'magic_seal',
+      {volume:.14,x:event.x??420});
+  }
   else if(event.type==='BOSS_TELEGRAPH')this.play('warning',{volume:.54,x:410});
   else if(event.type==='BOSS_SHIELD')this.play('boss_cast',{volume:.65,x:410});
   else if(event.type==='SHIELD_BROKEN'||event.type==='SHIELD_EXPLODE')this.play('shield_break',{volume:.77,x:420});
