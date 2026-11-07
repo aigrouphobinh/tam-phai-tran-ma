@@ -93,3 +93,16 @@ Vào **http://127.0.0.1:8788/models** (hoặc nhấn liên kết ngay trong /adm
 - Bạn có thể chọn từng hoạt ảnh hoặc bật chuỗi chạy tự động. Trên đấu trường thật, hoạt ảnh được kích hoạt theo state từ **Node.js RaidEngine**, không phát độc lập với chiến đấu.
 
 **Lưu ý mỹ thuật:** Đây là cutout rig 2D tạo hình bằng Canvas với khớp chuyển động; **chưa phải nhân vật Spine/Rive có atlas mỹ thuật được tách và rig thủ công**. Những rig hiện tại cho thấy chuyển động rõ ràng nhưng vẫn cần nâng cấp sprite/texture và kiểm tra FPS trên máy OBS để đạt mức hoàn thiện thương mại. Chạy `npm test` để kiểm thử state machine và các tư thế 2D.
+
+## V4 — Đồng bộ hoạt ảnh với chiến đấu thật
+
+Mở **http://127.0.0.1:8788/models** để xem từng model. Chọn một hoạt ảnh rồi trang sẽ **lặp lại hành động đó** đến khi đổi lựa chọn; chế độ tự động lần lượt chạy tám trạng thái. Đấu trường LIVE vẫn mở tại \`/obs\`.
+
+- Mỗi lần chém/tụ pháp có \`actionSeq\`, \`actionAt\`, \`actionDuration\` riêng, kể cả khi hai lần liên tiếp sử dụng cùng một hành động; renderer giữ đúng tiến trình giữa các gói SSE.
+- Đòn đánh thường được đặt lịch va chạm sau **240 ms**: model vung vũ khí trước, server mới tính sát thương. SFX mở đầu và SFX trúng đích có thời điểm khác nhau, dùng file theo từng môn phái.
+- Animation tạo hình có ba nhịp: chuẩn bị, thi triển, thu hồi. Đòn bậc 5 có timeline dài hơn đòn thường.
+- Boss có hoạt ảnh bị trúng đòn (giới hạn tần suất để không giật khi đông người), niệm khiên, choáng, thi triển đòn, chuyển giai đoạn, chiến thắng và gục.
+- Vị trí nhân vật được nội suy từ tọa độ đang hiển thị thay vì tọa độ snapshot cũ, hạn chế giật lùi khi stream cập nhật 10 Hz.
+- Các test trong \`tests/animation-timeline.test.mjs\` kiểm tra sát thương theo thời điểm, phát lại cùng state, pha animation, khiên boss và cue âm thanh.
+
+**Giới hạn hiện tại:** Rig dùng Canvas/vector cắt lớp. Chưa có bộ sprite anime riêng cho từng môn phái và boss với texture atlas được vẽ, tách lớp và rig theo tiêu chuẩn Spine thương mại. Đây là hướng nâng cấp mỹ thuật tiếp theo; tuyệt đối không thay bằng hình minh họa cố định hoặc video giả lập.
