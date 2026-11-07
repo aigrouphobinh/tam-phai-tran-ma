@@ -26,10 +26,11 @@ export function validateSkinManifest(m){
       !Number.isSafeInteger(rows)||rows<1||rows>32||
       frames>columns*rows||!Number.isSafeInteger(frameWidth)||frameWidth<8||frameWidth>2048||
       !Number.isSafeInteger(frameHeight)||frameHeight<8||frameHeight>2048||
-      !Number.isFinite(fps)||fps<=0||fps>60)
+      !Number.isFinite(fps)||fps<=0||fps>60||
+      (clip.renderScale!==undefined&&(!Number.isFinite(clip.renderScale)||clip.renderScale<.4||clip.renderScale>2.5)))
     throw Error('Invalid animation dimensions '+k+':'+state);
    animations[state]={texture:clip.texture,frames,columns,rows,frameWidth,frameHeight,
-    fps,loop:clip.loop!==false};
+    fps,loop:clip.loop!==false,...(clip.renderScale!==undefined?{renderScale:clip.renderScale}:{})};
   }
   for(const l of layers){
    if(!safePath(l.texture)||!bones.includes(l.bone||'root'))throw Error('Invalid layer '+k);
@@ -98,27 +99,32 @@ export class SkinRenderer{
   const direction=sampleDirection(key,state,age,t,
     combatClip&&track?.duration>0?track.duration:null);
   g.save();g.globalAlpha=.35;g.fillStyle='#060918';g.beginPath();g.ellipse(x,y,Math.min(55,h*.26),Math.min(12,h*.07),0,0,Math.PI*2);g.fill();g.restore();
-  g.save();g.translate(x+direction.x*(isBoss?.94:.75),y+p.bob*(isBoss?2:1.3)+direction.y*(isBoss?1.15:.83));
-  // The drawing pose is derived from authored actor-specific keyframes; no client-side damage calculation.
+  const clip=a.animations?.[displayState]||a.animations?.[state];
+  const atlas=clip?this.images.get(clip.texture):null;
+  const clipUsable=atlas&&atlas.naturalWidth>=clip.columns*clip.frameWidth&&
+   atlas.naturalHeight>=clip.rows*clip.frameHeight;
+  if(clipUsable){
+   // A true frame-painted animation must not receive a second mesh/rig rotation.
+   // The frames already contain their own anticipation, contact and follow-through.
+   const frameIndex=Math.floor(Math.max(0,age)*clip.fps);
+   const frame=clip.loop?frameIndex%clip.frames:Math.min(clip.frames-1,frameIndex);
+   const sx=(frame%clip.columns)*clip.frameWidth,sy=Math.floor(frame/clip.columns)*clip.frameHeight;
+   const hh=h*(clip.renderScale||1),ww=hh*clip.frameWidth/clip.frameHeight;
+   g.save();g.translate(x,y);g.globalAlpha*=p.opacity;
+   g.drawImage(atlas,sx,sy,clip.frameWidth,clip.frameHeight,
+    -ww*a.anchor[0],-hh*a.anchor[1],ww,hh);
+   g.restore();
+   return true;
+  }
+  // Only the fallback flat texture uses client-side body deformation.
+  g.save();g.translate(x+direction.x*(isBoss?.94:.75),
+   y+p.bob*(isBoss?2:1.3)+direction.y*(isBoss?1.15:.83));
   const downTilt=state==='down'?p.fall*(isBoss?.48:.68):p.fall*(isBoss?.6:1);
   g.rotate(downTilt+p.lean*.30+direction.tilt*(isBoss?.55:.75));
   const wave=state==='run'?1+.011*Math.sin(t*15):1;
   g.scale(wave*(1+direction.stretch*.16),(1/wave)*(1-direction.stretch*.11));
   g.globalAlpha*=p.opacity;
-  const clip=a.animations?.[displayState]||a.animations?.[state];
-  const atlas=clip?this.images.get(clip.texture):null;
-  // Never show cropped/blank sprites from a corrupt or undersized atlas.
-  const clipUsable=atlas&&atlas.naturalWidth>=clip.columns*clip.frameWidth&&
-   atlas.naturalHeight>=clip.rows*clip.frameHeight;
-  if(clip&&clipUsable){
-   const frameIndex=Math.floor(Math.max(0,age)*clip.fps);
-   const frame=clip.loop?frameIndex%clip.frames:Math.min(clip.frames-1,frameIndex);
-   const sx=(frame%clip.columns)*clip.frameWidth;
-   const sy=Math.floor(frame/clip.columns)*clip.frameHeight;
-   const w=h*clip.frameWidth/clip.frameHeight;
-   g.drawImage(atlas,sx,sy,clip.frameWidth,clip.frameHeight,
-    -w*a.anchor[0],-h*a.anchor[1],w,h);
-  }else if(a.layers.length){
+  if(a.layers.length){
    for(const l of a.layers){
     const img=this.images.get(l.texture);if(!img)continue;
     g.save();g.translate(l.x*h,l.y*h);
