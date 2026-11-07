@@ -134,19 +134,43 @@ function guide(t,age,rect){
  }
  g.fillStyle='#ffffff12';g.fillRect(547,99,373,402);
  g.strokeStyle=col;g.lineWidth=1.2;g.strokeRect(547,99,373,402);
- g.font='bold 17px system-ui';g.fillStyle='#f7dca2';g.fillText('KEY POSES / TIMELINE',566,126);
- const stages=[0,.25,.5,.75,1];
- for(let i=0;i<stages.length;i++){
-  const k=stages[i],y=163+i*72;
-  const a=sampleDirection(actor,state,k*track.duration,t);
-  g.fillStyle=i%2?'#322943':'#28243a';g.fillRect(564,y-16,338,55);
-  g.fillStyle=col;g.beginPath();g.arc(583,y+8,7,0,Math.PI*2);g.fill();
-  g.fillStyle='#e9deed';g.font='13px system-ui';g.fillText(['Bắt đầu','Lấy đà','Phát lực','Thu chiêu','Kết thúc'][i],602,y);
-  g.fillStyle='#b6b4c7';g.font='12px monospace';
-  g.fillText(Math.round(k*100)+'%   tilt '+a.tilt.toFixed(2)+'   push '+a.upper.toFixed(1),602,y+19);
-  if(Math.abs(pose.progress-k)<.11){g.strokeStyle='#ffd88c';g.strokeRect(566,y-14,334,51)}
+ const clip=ready?skins.manifest?.actors?.[actor]?.animations?.[state]:null;
+ const atlas=clip?skins.images.get(clip.texture):null;
+ const valid=Boolean(atlas&&atlas.naturalWidth>=clip.columns*clip.frameWidth&&
+  atlas.naturalHeight>=clip.rows*clip.frameHeight);
+ g.font='bold 17px system-ui';g.fillStyle='#f7dca2';
+ g.fillText(valid?'SPRITE FRAMES · '+clip.frames+' HÌNH RIÊNG':'KEY POSES / TIMELINE',566,126);
+ if(valid){
+  const current=Math.min(clip.frames-1,Math.floor(age*clip.fps));
+  for(let i=0;i<clip.frames;i++){
+   const x=562+(i%4)*86,y=149+Math.floor(i/4)*109;
+   g.fillStyle=i===current?'#56477a':'#25243f';g.fillRect(x,y,80,100);
+   g.lineWidth=i===current?2:1;g.strokeStyle=i===current?'#ffe39a':'#756482';
+   g.strokeRect(x,y,80,100);
+   const sx=(i%clip.columns)*clip.frameWidth,sy=Math.floor(i/clip.columns)*clip.frameHeight;
+   g.drawImage(atlas,sx,sy,clip.frameWidth,clip.frameHeight,x+4,y+2,72,76);
+   g.fillStyle=i===current?'#ffe4a4':'#dfd8e7';g.font='bold 12px system-ui';
+   g.fillText(String(i+1).padStart(2,'0'),x+30,y+94);
+  }
+  g.fillStyle='#d9cbeb';g.font='12px monospace';
+  g.fillText('FRAME '+String(current+1).padStart(2,'0')+'/'+clip.frames+' • '+clip.fps+' FPS',570,493);
+ }else{
+  const stages=[0,.25,.5,.75,1];
+  for(let i=0;i<stages.length;i++){
+   const k=stages[i],y=163+i*72;
+   const a=sampleDirection(actor,state,k*track.duration,t);
+   g.fillStyle=i%2?'#322943':'#28243a';g.fillRect(564,y-16,338,55);
+   g.fillStyle=col;g.beginPath();g.arc(583,y+8,7,0,Math.PI*2);g.fill();
+   g.fillStyle='#e9deed';g.font='13px system-ui';
+   g.fillText(['Bắt đầu','Lấy đà','Phát lực','Thu chiêu','Kết thúc'][i],602,y);
+   g.fillStyle='#b6b4c7';g.font='12px monospace';
+   g.fillText(Math.round(k*100)+'%   tilt '+a.tilt.toFixed(2)+'   push '+a.upper.toFixed(1),602,y+19);
+   if(Math.abs(pose.progress-k)<.11){g.strokeStyle='#ffd88c';g.strokeRect(566,y-14,334,51)}
+  }
  }
- g.fillStyle='#c9bacb';g.font='12px system-ui';g.fillText('Chuyển động trên ảnh RGBA · Không phải frame atlas vẽ tay',23,538);
+ g.fillStyle='#c9bacb';g.font='12px system-ui';
+ g.fillText(valid?'Đang phát nhiều frame WebP RGBA · Kiếm Tông: bản art thử nghiệm':
+  'Đang dùng ảnh RGBA đơn + mesh · Chưa có nhiều frame cho state này',23,538);
  g.restore();
  $('#pose').textContent=JSON.stringify({actor,state,duration:track.duration,loop:track.loop,
  progress:Number(pose.progress.toFixed(3)),x:Number(pose.x.toFixed(2)),y:Number(pose.y.toFixed(2)),
@@ -171,6 +195,18 @@ $('#play').onclick=()=>{playing=!playing;if(playing&&progress>=1)progress=0;
 $('#replay').onclick=()=>{progress=0;playing=true;$('#play').textContent='⏸ Tạm dừng';$('#play').classList.add('active')};
 $('#scrub').oninput=e=>{progress=Number(e.target.value)/1000;playing=false;
  $('#play').textContent='▶ Phát';$('#play').classList.remove('active')};
+// Clicking a real frame preview seeks to that frame; no fake pose list.
+can.addEventListener('pointerdown',event=>{
+ const clip=skins.manifest?.actors?.[actor]?.animations?.[state];
+ if(!clip||!skins.images.has(clip.texture))return;
+ const box=can.getBoundingClientRect(),x=(event.clientX-box.left)*can.width/box.width,
+  y=(event.clientY-box.top)*can.height/box.height;
+ const col=Math.floor((x-562)/86),row=Math.floor((y-149)/109);
+ if(x<562||y<149||col<0||col>3||row<0||row>2)return;
+ const frame=row*4+col;if(frame>=clip.frames)return;
+ progress=Math.min(1,((frame+.001)/clip.fps)/profileFor(actor,state).duration);
+ playing=false;$('#play').textContent='▶ Phát';$('#play').classList.remove('active');
+});
 $('#shot').onclick=()=>{const a=document.createElement('a');
  a.download='tam-phai-'+actor+'-'+state+'-'+Math.round(progress*100)+'pct.png';a.href=can.toDataURL('image/png');a.click()};
 $('#export').onclick=()=>{
