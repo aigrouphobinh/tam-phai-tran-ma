@@ -64,7 +64,7 @@ test('live and model lab share the same skin renderer and draw actual bitmaps',a
    assert.equal(skin.drawPlayer(g,p,1.2,100+i*60,400,m,1),true);
   }
  }
- assert.equal(trace.images,4,'each actor should draw one actual imported texture');
+ assert.ok(trace.images>=56,'each actor must render multiple real-texture mesh strips, not one rotating poster');
 });
 test('missing texture safely falls back without lying that rig is production ready',async()=>{
  class BrokenImage{set src(x){queueMicrotask(()=>this.onerror(Error('no file')))}}
