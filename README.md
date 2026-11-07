@@ -1,14 +1,16 @@
 # Tam Phái Trấn Ma
 
-Game 2D dọc cho TikTok LIVE. Bản khởi tạo cung cấp bảng kỹ năng ba môn phái và hàm chọn kỹ năng theo giá trị quà. Chạy kiểm thử bằng `node --test`.
+Game boss raid local cho TikTok LIVE. Dùng Node.js 22 trở lên. Mở terminal trong thư mục dự án và chạy `npm start` hoặc mở `start.cmd` trên Windows. Giả lập chạy ngay với Node, kể cả khi chưa cài connector.
 
-## Kiến trúc triển khai
+- Điều khiển tại http://127.0.0.1:8788/admin. Bấm **Bắt đầu giả lập**, mở đấu trường và thử quà.
+- Trong OBS thêm Browser Source http://127.0.0.1:8788/obs, kích thước 540 × 960, 30 FPS. Mở Interact và bấm **Bật âm** để nghe hiệu ứng.
+- Để nhận sự kiện thật, chạy `npm install tiktok-live-connector@2.5.0`, khởi động lại server, nhập tên kênh đang LIVE ở trang điều khiển. Trạng thái kết nối và lỗi hiển thị tại đó. Khả năng kết nối phụ thuộc quyền truy cập của TikTok và dịch vụ ký mà connector sử dụng.
+- Kiểm thử bằng `npm test`. Server chỉ lắng nghe ở loopback. Đổi cổng bằng biến PORT.
 
-Tham chiếu server.js trong aigrouphobinh/tiktok-live-temple-rpc tại 2908ce298368b2fd466ea723daf579cb71f1e5b5. Connector nguồn xử lý WebcastEvent.CHAT, LIKE và GIFT. Callback chat gọi trình phân tích nghi lễ ngay tại server, do đó cần nhận bình luận ở lớp connector trước bước này để xử lý lệnh nhập môn.
+## Luật trận
 
-1. Adapter LIVE và simulator phát cùng kiểu sự kiện nội bộ. Chat mang uniqueId và comment, like mang số lượt tăng, gift mang groupId, diamondCount, repeatCount và repeatEnd. Adapter phải chốt một lần mỗi chuỗi trước khi gọi selectGiftSkill với tổng số lần lặp.
-2. Game server sở hữu đội hình, máu boss, hồi chiêu, đồng hồ và điểm. Ba lệnh !kiem, !huyen, !linh tạo nhân vật theo uniqueId. Server gửi snapshot khi OBS kết nối lại.
-3. OBS dùng Canvas 540 × 960, mục tiêu 30 FPS. Giới hạn 40 nhân vật vẽ trực tiếp. Âm cảnh báo ưu tiên hơn tiếng đánh thường.
-4. Ngưỡng bonus bản đầu là 1, 5, 20, 100 và 500. Đây là thông số cân bằng game.
+Chat !kiem, !huyen hoặc !linh để nhập môn. Người chưa nhập môn gửi quà được xếp vào Kiếm Tông. Mỗi trận kéo dài tối đa 240 giây từ người đầu tiên, mỗi nhân vật tự đóng góp sát thương. !skill hồi sau 8 giây. Like tích thanh hợp kích. Quà kích hoạt một trong 15 chiêu, bậc 1–5 theo tổng giá trị 1 / 5 / 20 / 100 / 500. Chuỗi có cờ streak chốt khi nhận repeatEnd. Boss tăng sức mạnh ở hai ngưỡng máu và dựng khiên mỗi 30 giây. Hết thời gian hoặc trận pháp vỡ thì thua. Sau bảng vinh danh 12 giây, mở trận mới.
 
-Adapter, game server và màn OBS đang ở giai đoạn thiết kế.
+## Kiến trúc
+
+live.mjs nhận CHAT / LIKE / GIFT theo giao diện connector dùng ở tiktok-live-temple-rpc. Dữ liệu chuẩn hóa và sự kiện giả lập đi vào Raid.input. raid.mjs quản lý trận theo giây; combat.mjs chọn bậc chiêu. server.mjs truyền snapshot qua SSE, kể cả khi OBS mở lại. Arena chỉ vẽ tối đa 40 nhân vật ở 540 × 960 và tổng hợp âm bằng Web Audio. Bảng điểm cộng dồn được lưu vào save.json khi kết trận. Trận đang chơi giữ trong RAM. Chuyển chế độ trên trang điều khiển sẽ bắt đầu phiên mới.
