@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Animation Studio — Tam Phái Trấn Ma</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0d1d;--panel:#17192d;--stroke:#665473;--gold:#f9d692;--blue:#85c9ff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:#f6e3c9;font:15px system-ui,-apple-system,sans-serif}
+header{max-width:1200px;margin:auto;padding:20px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+header h1{font:bold clamp(20px,2vw,30px) Georgia;margin:0}header small{display:block;color:#aeabbc;margin-top:5px}
+a{color:var(--blue)}button,select{background:#28243d;border:1px solid #77627f;border-radius:9px;color:#f7e7d0;padding:9px 14px;font:600 14px system-ui;cursor:pointer}
+button[aria-pressed=true],button.active{background:#61458b;border-color:#d1a4f1}
+button:hover{filter:brightness(1.18)}button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #f5ce94;outline-offset:2px}
+main{max-width:1200px;padding:0 20px 30px;margin:auto}
+.panel{background:linear-gradient(135deg,#1d1b35,#121525);border:1px solid var(--stroke);border-radius:13px;padding:14px;margin-bottom:12px}
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.toolbar label{display:inline-flex;gap:7px;align-items:center;color:#c6bad1}
+.toolbar select{min-width:130px}
+#stage{display:block;width:100%;height:auto;background:#18172b;border:1px solid #6f547a;border-radius:10px}
+.states{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+.timeline{display:grid;grid-template-columns:88px minmax(80px,1fr) 90px;gap:12px;align-items:center;margin-top:14px}
+#scrub{width:100%;accent-color:#e6bd7d}
+#timestamps{font:12px monospace;color:#c8bdcc;text-align:right}
+#cues{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.cue{border:1px solid #745a86;border-radius:20px;background:#302443;padding:5px 10px;color:#edcefa;font-size:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mini{color:#bcb1c6;font-size:13px;line-height:1.55}
+#pose{white-space:pre-wrap;font:12px/1.6 monospace;color:#d7d6ee;margin:0}
+#asset-status{color:#b4f3cc;font-size:13px}
+#footer{text-align:center;color:#a7a4b9;font-size:12px}
+@media(max-width:760px){header{display:block}.grid{grid-template-columns:1fr}.timeline{grid-template-columns:70px 1fr 62px}main{padding:0 12px 20px}}
+</style>
+</head><body>
+<header>
+ <div><h1>ANIMATION STUDIO <span style="color:#f2cf88">/ TAM PHÁI TRẤN MA</span></h1>
+ <small>Thiết kế chuyển động cho sprite thật · Không thay đổi gameplay server</small></div>
+ <nav><a href="/models">4 model</a> · <a href="/obs">OBS</a> · <a href="/admin">Admin</a></nav>
+</header>
+<main>
+<section class="panel">
+<div class="toolbar">
+<label>Nhân vật <select id="actor">
+<option value="kiem">⚔ Kiếm Tông</option><option value="huyen">☯ Huyền Môn</option>
+<option value="linh">✿ Linh Dược</option><option value="boss">♛ Hồng Liên Ma Tướng</option>
+</select></label>
+<button id="play" class="active">⏸ Tạm dừng</button>
+<button id="replay">↻ Phát lại</button>
+<label>Tốc độ <select id="speed"><option value=".25">0.25×</option><option value=".5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option></select></label>
+<button id="shot">Lưu khung hình PNG</button>
+<button id="export">Xuất timeline JSON</button>
+</div>
+<div class="states" id="states"></div>
+</section>
+<section class="panel">
+<canvas id="stage" width="960" height="560" aria-label="Mô hình 2D thật cùng ảnh tham chiếu pose và khung kỹ năng"></canvas>
+<div class="timeline">
+ <label for="scrub">Timeline</label>
+ <input id="scrub" type="range" min="0" max="1000" step="1" value="0">
+ <output id="timestamps">0.00s</output>
+</div>
+<div id="cues" aria-label="Các mốc kỹ năng"></div>
+<div id="asset-status" role="status">Đang tải bốn sprite game thật...</div>
+</section>
+<div class="grid">
+ <section class="panel"><strong>Thông số hoạt ảnh đang phát</strong><pre id="pose"></pre></section>
+ <section class="panel"><strong>Hướng dẫn kiểm duyệt</strong>
+ <p class="mini">Kiểm tra mốc lấy đà, phát lực, tiếp xúc và thu chiêu. Căn chân ở cùng mốc mặt đất, không đổi khuôn mặt hoặc trang phục. Trong game, hành động được kích hoạt bởi state + actionSeq trên Node.js. Khi có atlas frame-by-frame được duyệt, renderer ưu tiên atlas thay cho biến dạng mesh.</p>
+ <p class="mini"><b>Giới hạn:</b> Đây là bộ định hướng keyframe chạy trên các ảnh RGBA thật; chuyển động hiện chưa phải xương tách lớp hay 8 bộ sprite atlas vẽ tay.</p>
+ </section>
+</div>
+<p id="footer">540×960 OBS · 2D character assets · 4 actors · 8 main states · authored timing · synchronized combat events</p>
+</main>
+<script type="module">
+import {SkinRenderer} from '/skin-renderer.js';
+import {ModelAnimator} from '/models2d.js';
+import {profileFor,sampleDirection} from '/animation-direction.js';
+
+const $=s=>document.querySelector(s),g=$('#stage').getContext('2d'),can=g.canvas;
+const skins=new SkinRenderer(),models=new ModelAnimator();
+const STATES=['idle','run','attack','cast','hit','down','revive','victory','windup','impact','stun','phase'];
+const LABELS={idle:'Đứng chờ',run:'Chạy',attack:'Tấn công',cast:'Tụ pháp',
+ hit:'Trúng đòn',down:'Gục ngã',revive:'Hồi sinh',victory:'Chiến thắng',
+ windup:'Boss tụ lực',impact:'Boss quét liềm',stun:'Boss choáng',phase:'Chuyển phase'};
+const colors={kiem:'#72c6ff',huyen:'#cd8aff',linh:'#7bf2bb',boss:'#ff7097'};
+let actor='kiem',state='idle',playing=true,speed=1,progress=0,previous=performance.now();
+let lastPose=null,ready=false;
+const player={id:'animation-studio',faction:'kiem',state:'idle',scale:.82,hp:100,shield:0};
+const boss={phase:2,hp:60000,bossState:'idle',cast:0,shield:0,result:''};
+skins.load().then(r=>{ready=r.ready;$('#asset-status').textContent=r.ready?
+ 'Đã nạp '+r.loaded+' texture trong game · Xem frame thật bên dưới':
+ 'Không tải được texture: '+r.errors.join('; ')+' · Dừng preview để không ngộ nhận là asset đã hoạt động';
+ $('#asset-status').style.color=r.ready?'#b4f3cc':'#ffa9b7';
+});
+function available(){return actor==='boss'?STATES:STATES.slice(0,8)}
+function renderButtons(){
+ $('#states').replaceChildren();
+ for(const key of available()){
+ const b=document.createElement('button');b.textContent=LABELS[key];b.setAttribute('aria-pressed',String(state===key));
+ b.onclick=()=>{state=key;progress=0;renderButtons();updateCues()};$('#states').appendChild(b)}
+}
+function updateCues(){
+ $('#cues').replaceChildren();
+ for(const cue of profileFor(actor,state).cues){
+  const b=document.createElement('button');b.className='cue';b.textContent=cue.type.replaceAll('-',' ')+' · '+Math.round(cue.at*100)+'%';
+  b.onclick=()=>{progress=cue.at;playing=false;$('#play').textContent='▶ Phát';$('#play').classList.remove('active')};
+  $('#cues').appendChild(b)
+ }
+}
+function bindPose(t,age){
+ const track=profileFor(actor,state);const duration=track.duration;
+ if(actor==='boss'){
+  const bossState=state==='cast'?'windup':state==='attack'?'impact':state==='hit'?'stun':state;
+  boss.bossState=bossState;boss.result='';boss.hp=60000;boss.cast=0;
+  models.boss={state:bossState,seq:1,since:(t-age)*1000,duration};
+ }else{
+  player.faction=actor;player.state=state;player.hp=state==='down'?0:100;
+  models.states.set(player.id,{state,seq:1,since:(t-age)*1000,duration,seed:.3});
+ }
+}
+function guide(t,age,rect){
+ const pose=sampleDirection(actor,state,age,t);lastPose=pose;
+ const track=profileFor(actor,state),col=colors[actor];
+ g.save();g.fillStyle='#101327';g.fillRect(0,0,960,560);
+ const grad=g.createLinearGradient(0,0,0,530);grad.addColorStop(0,'#34294d');grad.addColorStop(1,'#10172c');g.fillStyle=grad;g.fillRect(0,0,960,560);
+ g.strokeStyle='#a7898a44';for(let y=432;y<=520;y+=17){g.beginPath();g.moveTo(0,y);g.lineTo(960,y);g.stroke()}
+ for(let x=40;x<960;x+=48){g.beginPath();g.moveTo(x,0);g.lineTo(x,560);g.strokeStyle='#aba3b012';g.stroke()}
+ g.fillStyle=col;g.font='700 24px Georgia';g.fillText(actor==='boss'?'HỒNG LIÊN MA TƯỚNG':actor==='kiem'?'KIẾM TÔNG':actor==='huyen'?'HUYỀN MÔN':'LINH DƯỢC',36,46);
+ g.font='600 16px system-ui';g.fillStyle='#fbecd5';g.fillText(LABELS[state]+' · '+(pose.progress*100).toFixed(0)+'% · '+track.duration.toFixed(2)+'s',36,74);
+ // The original approved sprite is rendered with character-specific authored timeline.
+ if(ready){
+  if(actor==='boss')skins.drawActor(g,'boss',boss,t,314,471,models,1.22);
+  else skins.drawPlayer(g,player,t,314,479,models,3.5);
+ }else{
+  g.font='bold 21px system-ui';g.fillStyle='#ffb1b9';g.fillText('Chưa nạp được texture',150,290);
+ }
+ g.fillStyle='#ffffff12';g.fillRect(547,99,373,402);
+ g.strokeStyle=col;g.lineWidth=1.2;g.strokeRect(547,99,373,402);
+ g.font='bold 17px system-ui';g.fillStyle='#f7dca2';g.fillText('KEY POSES / TIMELINE',566,126);
+ const stages=[0,.25,.5,.75,1];
+ for(let i=0;i<stages.length;i++){
+  const k=stages[i],y=163+i*72;
+  const a=sampleDirection(actor,state,k*duration,t);
+  g.fillStyle=i%2?'#322943':'#28243a';g.fillRect(564,y-16,338,55);
+  g.fillStyle=col;g.beginPath();g.arc(583,y+8,7,0,Math.PI*2);g.fill();
+  g.fillStyle='#e9deed';g.font='13px system-ui';g.fillText(['Bắt đầu','Lấy đà','Phát lực','Thu chiêu','Kết thúc'][i],602,y);
+  g.fillStyle='#b6b4c7';g.font='12px monospace';
+  g.fillText(Math.round(k*100)+'%   tilt '+a.tilt.toFixed(2)+'   push '+a.upper.toFixed(1),602,y+19);
+  if(Math.abs(pose.progress-k)<.11){g.strokeStyle='#ffd88c';g.strokeRect(566,y-14,334,51)}
+ }
+ g.fillStyle='#c9bacb';g.font='12px system-ui';g.fillText('Chuyển động trên ảnh RGBA · Không phải frame atlas vẽ tay',23,538);
+ g.restore();
+ $('#pose').textContent=JSON.stringify({actor,state,duration:track.duration,loop:track.loop,
+ progress:Number(pose.progress.toFixed(3)),x:Number(pose.x.toFixed(2)),y:Number(pose.y.toFixed(2)),
+ tilt:Number(pose.tilt.toFixed(3)),upper:Number(pose.upper.toFixed(2)),
+ mid:Number(pose.mid.toFixed(2)),lower:Number(pose.lower.toFixed(2)),
+ glow:Number(pose.glow.toFixed(2)),cueCount:track.cues.length},null,2);
+}
+function frame(now){
+ const delta=Math.min(.1,(now-previous)/1000);previous=now;
+ const track=profileFor(actor,state);
+ if(playing){progress+=delta*speed/track.duration;if(track.loop)progress%=1;else if(progress>=1){progress=1;playing=false;$('#play').textContent='▶ Phát';$('#play').classList.remove('active')}}
+ $('#scrub').value=Math.round(progress*1000);
+ const age=progress*track.duration,t=now/1000;
+ $('#timestamps').textContent=age.toFixed(2)+'s';
+ bindPose(t,age);guide(t,age);
+ requestAnimationFrame(frame)
+}
+$('#actor').onchange=e=>{actor=e.target.value;state='idle';progress=0;renderButtons();updateCues()};
+$('#speed').onchange=e=>speed=Number(e.target.value)||1;
+$('#play').onclick=()=>{playing=!playing;if(playing&&progress>=1)progress=0;
+ $('#play').textContent=playing?'⏸ Tạm dừng':'▶ Phát';$('#play').classList.toggle('active',playing)};
+$('#replay').onclick=()=>{progress=0;playing=true;$('#play').textContent='⏸ Tạm dừng';$('#play').classList.add('active')};
+$('#scrub').oninput=e=>{progress=Number(e.target.value)/1000;playing=false;
+ $('#play').textContent='▶ Phát';$('#play').classList.remove('active')};
+$('#shot').onclick=()=>{const a=document.createElement('a');
+ a.download='tam-phai-'+actor+'-'+state+'-'+Math.round(progress*100)+'pct.png';a.href=can.toDataURL('image/png');a.click()};
+$('#export').onclick=()=>{
+ const pack={name:'Tam Phai Tran Ma animation direction',actor,state,profile:profileFor(actor,state),
+ note:'Motion direction metadata only; not a rendered sprite strip or a complete skeletal rig'};
+ const blob=new Blob([JSON.stringify(pack,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob);
+ const a=document.createElement('a');a.href=url;a.download=actor+'-'+state+'-direction.json';a.click();
+ setTimeout(()=>URL.revokeObjectURL(url),5000)
+};
+renderButtons();updateCues();requestAnimationFrame(frame);
+</script></body></html>
