@@ -51,7 +51,7 @@ test('manifest refuses missing assets, invalid anchors, unsafe sources, non-fini
 test('live and model lab share the same skin renderer and draw actual bitmaps',async()=>{
  const skin=createSkin(),loaded=await skin.load();
  assert.equal(loaded.ready,true);
- assert.equal(loaded.loaded,4);
+ assert.equal(loaded.loaded,5);
  const m=new ModelAnimator(),{g,trace}=fakeCanvas();
  for(const [i,k] of names.entries()){
   if(k==='boss'){
@@ -89,7 +89,7 @@ test('default browser fetch retains Window receiver and loads all four real spri
   const skin=new SkinRenderer({ImageCtor:TestImage});
   const status=await skin.load();
   assert.equal(status.ready,true,JSON.stringify(status.errors));
-  assert.equal(status.loaded,4);
+  assert.equal(status.loaded,5);
   assert.deepEqual(Object.values(status.actors),[true,true,true,true]);
   assert.equal(called.length,1);
   assert.equal(called[0].url,'/assets/characters/manifest.json');
