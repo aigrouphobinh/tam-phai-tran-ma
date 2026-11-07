@@ -12,10 +12,12 @@ test('tier5 sword casts real skill damage on boss and awards correct donation',(
  assert.equal(g.gift('1','1',500,1,'tx-1'),false);assert.equal(g.hp,after);
  assert.equal(g.players.get('1').diamonds,500);
  assert.ok(g.events.some(e=>e.skillId==='kiem_t5'));
+ assert.equal(g.players.get('1').state,'attack','skill 5 must animate the sword actor');
 });
 test('support class heals real team/actors, no imaginary effects',()=>{
  const g=new RaidEngine();join(g,'1','linh');const p=join(g,'2','kiem');p.hp=25;
  g.gift('1','1',500,1,'support');assert.ok(p.hp>25);assert.ok(g.players.get('1').healing>0);
+ assert.equal(g.players.get('1').state,'cast','healer skill must animate the support actor');
 });
 test('boss phase thresholds exact and fight can end',()=>{
  const g=new RaidEngine();const p=join(g);
