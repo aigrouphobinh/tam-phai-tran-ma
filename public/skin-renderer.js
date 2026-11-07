@@ -93,8 +93,11 @@ export class SkinRenderer{
   g.rotate(p.fall*(isBoss?.6:1)+p.lean*(isBoss?.6:1));
   const wave=state==='run'?1+.018*Math.sin(t*15):1;g.scale(wave,1/wave);g.globalAlpha*=p.opacity;
   const clip=a.animations?.[displayState]||a.animations?.[state];
-  if(clip&&this.images.has(clip.texture)){
-   const atlas=this.images.get(clip.texture);
+  const atlas=clip?this.images.get(clip.texture):null;
+  // Never show cropped/blank sprites from a corrupt or undersized atlas.
+  const clipUsable=atlas&&atlas.naturalWidth>=clip.columns*clip.frameWidth&&
+   atlas.naturalHeight>=clip.rows*clip.frameHeight;
+  if(clip&&clipUsable){
    const frameIndex=Math.floor(Math.max(0,age)*clip.fps);
    const frame=clip.loop?frameIndex%clip.frames:Math.min(clip.frames-1,frameIndex);
    const sx=(frame%clip.columns)*clip.frameWidth;
