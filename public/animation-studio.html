@@ -138,7 +138,7 @@ function guide(t,age,rect){
  const stages=[0,.25,.5,.75,1];
  for(let i=0;i<stages.length;i++){
   const k=stages[i],y=163+i*72;
-  const a=sampleDirection(actor,state,k*duration,t);
+  const a=sampleDirection(actor,state,k*track.duration,t);
   g.fillStyle=i%2?'#322943':'#28243a';g.fillRect(564,y-16,338,55);
   g.fillStyle=col;g.beginPath();g.arc(583,y+8,7,0,Math.PI*2);g.fill();
   g.fillStyle='#e9deed';g.font='13px system-ui';g.fillText(['Bắt đầu','Lấy đà','Phát lực','Thu chiêu','Kết thúc'][i],602,y);
