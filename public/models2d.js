@@ -67,7 +67,7 @@ export class ModelAnimator{
   if(!old||old.state!==p.state)this.states.set(p.id,{state:p.state||'idle',since:at,seed:hash(p.id)*.1});
  }
  observeBoss(s,at=performance.now()){
-  let next=s?.result?(s.hp<=0?'down':'victory'):(s?.bossState||'idle');
+  let next=s?.result?(s.hp<=0?'down':'victory'):(s?.bossState==='stun'?'stun':s?.cast>0?'windup':(s?.bossState||'idle'));
   if(next!==this.boss.state)this.boss={state:next,since:at};
  }
  dropInactive(ids){for(const id of this.states.keys())if(!ids.has(id))this.states.delete(id)}
