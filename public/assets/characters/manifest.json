@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": "concept-cutouts-v1",
+  "revision": "kiem-attack-12frame-v1",
   "license": "User-requested original AI-generated concept assets",
   "actors": {
     "kiem": {
@@ -11,8 +11,21 @@
       ],
       "renderHeight": 92,
       "sourceArt": "Tam Phai Tran Ma original generated concept artwork — kiem",
-      "quality": "flat RGBA cutout; production layered rig pending",
-      "layers": []
+      "quality": "12 independent attack poses from generated artwork (low-res candidate); other states use mesh; final high-res art and rig still pending",
+      "layers": [],
+      "animations": {
+        "attack": {
+          "texture": "/assets/characters/kiem-attack.webp",
+          "frames": 12,
+          "columns": 4,
+          "rows": 3,
+          "frameWidth": 128,
+          "frameHeight": 128,
+          "fps": 20,
+          "loop": false,
+          "renderScale": 1.5
+        }
+      }
     },
     "huyen": {
       "texture": "/assets/characters/huyen.webp",
