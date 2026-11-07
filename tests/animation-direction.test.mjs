@@ -72,3 +72,27 @@ test('animation direction is visual-only and does not change raid damage',async(
  assert.equal(actor.hp,100);
  assert.ok(pose.upper!==0);
 });
+
+test('animation studio key pose sampling uses the active clip duration',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const {runInNewContext}=await import('node:vm');
+ const html=readFileSync(new URL('../public/animation-studio.html',import.meta.url),'utf8');
+ const code=html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1];
+ assert.ok(code,'animation studio module script must exist');
+ const start=code.indexOf('function guide('),end=code.indexOf('function frame(',start);
+ assert.ok(start>=0&&end>start);
+ const fn=code.slice(start,end);
+ // Execute the actual guide() body against stubbed canvas APIs to catch runtime
+ // ReferenceErrors that syntax-only tests would miss (e.g. k*duration).
+ const canvas=new Proxy({save(){},restore(){},createLinearGradient(){return {addColorStop(){}}}},
+  {get(t,k){return k in t?t[k]:()=>{}}});
+ const nodes={'#pose':{textContent:''}};
+ const sandbox={
+  actor:'kiem',state:'attack',colors:{kiem:'#7fcfff'},
+  sampleDirection,profileFor,$:k=>nodes[k]??{textContent:''},
+  g:canvas,ready:false,lastPose:null,models:{},skins:{},player:{},boss:{}
+ };
+ const guide=runInNewContext(fn+';guide',sandbox);
+ assert.doesNotThrow(()=>guide(1.5,.2),'guide must render its five key poses without undefined variables');
+ assert.match(nodes['#pose'].textContent,/"duration": 0.58/);
+});
