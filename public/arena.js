@@ -5,14 +5,12 @@ import {ModelAnimator} from './models2d.js';
 const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d',{alpha:false});
 const W=540,H=960,TAU=Math.PI*2;
 const BG=new Image();BG.src='/assets/arena-background.webp';
-const BOSS=new Image();BOSS.src='/assets/boss-reference.webp';
 const fx=new Effects(),audio=new SoundBank(),models=new ModelAnimator();
 const COLORS={kiem:'#64bcff',huyen:'#cc76f9',linh:'#76f3bd',gold:'#ffdc8a',red:'#f15e86'};
 const CLASS={kiem:'KIẾM TÔNG',huyen:'HUYỀN MÔN',linh:'LINH DƯỢC'};
 const SKILLS=[['KIẾM KHÍ','1'],['LÔI KÍCH','2'],['PHONG ẤN','3'],['HỒI SINH','4'],['KIM LONG','5']];
 let state=null,connected=false,lastEvent=0,lastRound=-1,frameAt=performance.now();
 let anims=new Map(),activeMessage=null,notifyUntil=0;
-const dummy=()=>{};
 const rand=(a,b)=>Math.random()*(b-a)+a;
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const lerp=(a,b,k)=>a+(b-a)*k;
@@ -47,14 +45,14 @@ function drawBackground(t){
 function drawBoss(t,s){ models.drawBoss(ctx,s,t); }
 function fighter(p,t){
  const a=anims.get(p.id)||{x:p.x,y:p.y,rx:p.x,ry:p.y,received:performance.now()};
- const f=clamp((performance.now()-a.received)/140);
+ const f=clamp((performance.now()-a.received)/Math.max(80,a.interval||120));
  const x=lerp(a.x,a.rx,f),y=lerp(a.y,a.ry,f);
  models.drawPlayer(ctx,p,t,x,y);
 }
 function namesAndLabels(s,t){
  const byFaction={kiem:0,huyen:0,linh:0};
  for(const p of s.players){if(!p.leader&&byFaction[p.faction]++>=2)continue;
-  const a=anims.get(p.id)||{x:p.x,y:p.y,rx:p.x,ry:p.y};const k=clamp((performance.now()-a.received)/140),x=lerp(a.x,a.rx,k),y=lerp(a.y,a.ry,k)-69*(p.scale||.82);
+  const a=anims.get(p.id)||{x:p.x,y:p.y,rx:p.x,ry:p.y};const k=clamp((performance.now()-a.received)/Math.max(80,a.interval||120)),x=lerp(a.x,a.rx,k),y=lerp(a.y,a.ry,k)-69*(p.scale||.82);
   ctx.save();ctx.font='bold 11px sans-serif';const label=(p.leader?'♛ ':'')+p.name.slice(0,12),width=Math.min(110,ctx.measureText(label).width+17);
   panel(x-width/2,y-14,width,19,p.leader?'#ffdd82':COLORS[p.faction],.88);
   text(label,x,y,11,p.leader?'#ffe6a3':'#f9f5ed','center','sans-serif');ctx.restore();
@@ -115,7 +113,7 @@ function init(){
  stream.onopen=()=>connected=true;stream.onerror=()=>connected=false;
  stream.onmessage=e=>{
   let next;try{next=JSON.parse(e.data)}catch{return}
-  if(next.round!==lastRound){lastRound=next.round;lastEvent=next.events?.at(-1)?.id||0;fx.active=[];fx.particles=[];models.states.clear();}
+  if(next.round!==lastRound){lastRound=next.round;lastEvent=next.events?.at(-1)?.id||0;fx.active=[];fx.particles=[];models.states.clear();anims.clear();}
   else{
    const events=(next.events||[]).filter(ev=>ev.id>lastEvent).sort((a,b)=>a.id-b.id);
    for(const ev of events){fx.receive(ev);audio.effect(ev);if(ev.type==='SKILL_CAST'){
@@ -124,10 +122,19 @@ function init(){
    }
    lastEvent=next.events?.at(-1)?.id||lastEvent;
   }
-  models.observeBoss(next);
-  const prev=new Map((state?.players||[]).map(p=>[p.id,p]));
-  for(const p of next.players||[]){models.observe(p);const old=prev.get(p.id)||p;
-   anims.set(p.id,{x:old.x,y:old.y,rx:p.x,ry:p.y,received:performance.now()})}
+  const received=performance.now();
+  models.observeBoss(next,received,next.elapsed);
+  for(const p of next.players||[]){
+   models.observe(p,received,next.elapsed);
+   // Interpolate from the *rendered* position, not the last raw snapshot.
+   // Prevents a visible backward jump every 100 ms when receiving new SSE frames.
+   const old=anims.get(p.id);
+   const elapsed=old?received-old.received:100;
+   const f=old?clamp(elapsed/Math.max(80,old.interval||120)):1;
+   const x=old?lerp(old.x,old.rx,f):p.x;
+   const y=old?lerp(old.y,old.ry,f):p.y;
+   anims.set(p.id,{x,y,rx:p.x,ry:p.y,received,interval:Math.max(80,Math.min(220,elapsed))});
+  }
   const activeIds=new Set((next.players||[]).map(p=>p.id));models.dropInactive(activeIds);
   for(const id of anims.keys())if(!activeIds.has(id))anims.delete(id);
   state=next;
