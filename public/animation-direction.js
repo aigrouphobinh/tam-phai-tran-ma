@@ -114,8 +114,8 @@ export const ANIMATION_TRACKS=Object.freeze({
 export function profileFor(actor,state){
  return ANIMATION_TRACKS[actor]?.[state]||ANIMATION_TRACKS[actor]?.idle||IDLE;
 }
-export function sampleDirection(actor,state,age=0,clock=0){
- const track=profileFor(actor,state),duration=track.duration;
+export function sampleDirection(actor,state,age=0,clock=0,authoritativeDuration=null){
+ const track=profileFor(actor,state),duration=Number.isFinite(authoritativeDuration)&&authoritativeDuration>0?authoritativeDuration:track.duration;
  const time=track.loop?((Math.max(0,age)%duration)/duration):clamp(age/duration);
  const keys=track.keys;
  let left=keys[0],right=keys[keys.length-1];
