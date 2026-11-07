@@ -48,7 +48,7 @@ test('attack mode picks sequential source frames, not one picture/mesh strips',a
  rig.observe(p,1000);
  const {context,calls}=drawingContext();
  assert.equal(skin.drawPlayer(context,p,1.0,200,400,rig),true);
- assert.equal(skin.drawPlayer(context,p,1.15,200,400,rig),true);
+ assert.equal(skin.drawPlayer(context,p,1.16,200,400,rig),true);
  assert.equal(skin.drawPlayer(context,p,1.41,200,400,rig),true);
  assert.equal(calls.length,3,'each atlas draw uses one bitmap crop, no mesh fallback');
  for(const args of calls)assert.equal(args.length,9,'sprite-sheet must crop source rectangle');
