@@ -42,8 +42,11 @@ export function validateSkinManifest(m){
  return {version:1,actors};
 }
 export class SkinRenderer{
- constructor({fetchFn=globalThis.fetch,ImageCtor=globalThis.Image,clock=()=>performance.now()}={}){
-  this.fetchFn=fetchFn;this.ImageCtor=ImageCtor;this.clock=clock;
+ constructor({fetchFn,ImageCtor=globalThis.Image,clock=()=>performance.now()}={}){
+  // Browser fetch requires its native Window receiver. Extracting window.fetch
+  // without binding throws "Illegal invocation" before the manifest loads.
+  this.fetchFn=fetchFn??((...args)=>globalThis.fetch(...args));
+  this.ImageCtor=ImageCtor;this.clock=clock;
   this.manifest=null;this.images=new Map();this.errors=[];this.ready=false;this.loading=null;
  }
  fetchImage(src){return new Promise((resolve,reject)=>{
