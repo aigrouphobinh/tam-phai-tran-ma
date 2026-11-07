@@ -2,6 +2,7 @@
 // All combat results remain authoritative in engine.mjs; this module only draws them.
 // A single image is a high-quality sprite, NOT a fully articulated bone animation.
 import {getPose} from './models2d.js';
+import {sampleDirection} from './animation-direction.js';
 import {drawDeformedSprite} from './sprite-mesh.js';
 const FACTIONS=['kiem','huyen','linh','boss'],clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const safePath=s=>typeof s==='string'&&/^\/assets\/characters\/[a-z0-9_-]+\.(png|webp)$/.test(s);
@@ -88,10 +89,15 @@ export class SkinRenderer{
   const displayState=state==='windup'?'cast':state==='impact'?'attack':state==='stun'?'hit':state;
   const p=getPose(displayState,age,t,track?.seed||.6,track?.duration||.55);
   const h=a.renderHeight*(isBoss?1:(actor.scale||.82)/.82)*zoom;
+  const direction=sampleDirection(key,state,age,t);
   g.save();g.globalAlpha=.35;g.fillStyle='#060918';g.beginPath();g.ellipse(x,y,Math.min(55,h*.26),Math.min(12,h*.07),0,0,Math.PI*2);g.fill();g.restore();
-  g.save();g.translate(x,y+p.bob*(isBoss?2:1.3));
-  g.rotate(p.fall*(isBoss?.6:1)+p.lean*(isBoss?.6:1));
-  const wave=state==='run'?1+.018*Math.sin(t*15):1;g.scale(wave,1/wave);g.globalAlpha*=p.opacity;
+  g.save();g.translate(x+direction.x*(isBoss?.94:.75),y+p.bob*(isBoss?2:1.3)+direction.y*(isBoss?1.15:.83));
+  // The drawing pose is derived from authored actor-specific keyframes; no client-side damage calculation.
+  const downTilt=state==='down'?p.fall*(isBoss?.48:.68):p.fall*(isBoss?.6:1);
+  g.rotate(downTilt+p.lean*.30+direction.tilt*(isBoss?.55:.75));
+  const wave=state==='run'?1+.011*Math.sin(t*15):1;
+  g.scale(wave*(1+direction.stretch*.16),(1/wave)*(1-direction.stretch*.11));
+  g.globalAlpha*=p.opacity;
   const clip=a.animations?.[displayState]||a.animations?.[state];
   const atlas=clip?this.images.get(clip.texture):null;
   // Never show cropped/blank sprites from a corrupt or undersized atlas.
@@ -124,7 +130,7 @@ export class SkinRenderer{
    // Apply a light, timed strip-mesh deformation rather than rotating a flat poster.
    // Each strip samples the real original texture; gameplay remains server-side.
    if(!drawDeformedSprite(g,img,0,0,w,h,a.anchor,{
-    state:displayState,age,t,style:key,duration:track?.duration||.55
+    state:displayState,age,t,style:key,duration:track?.duration||.55,motion:direction
    }))g.drawImage(img,-w*a.anchor[0],-h*a.anchor[1],w,h);
   }
   if(state==='hit'){g.globalCompositeOperation='screen';g.globalAlpha=Math.max(0,.25*(1-age/.42));g.fillStyle='#ff6985';g.fillRect(-h*.36,-h*.95,h*.72,h*.95)}
