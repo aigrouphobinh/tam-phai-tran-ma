@@ -48,7 +48,7 @@ test('state loop wraps smoothly and nonloops hold final pose',()=>{
  const idle=profileFor('kiem','idle');
  const a=sampleDirection('kiem','idle',.25*idle.duration,0);
  const b=sampleDirection('kiem','idle',1.25*idle.duration,0);
- assert.equal(a.progress,b.progress);
+ assert.ok(Math.abs(a.progress-b.progress)<1e-10,'periodic phases match within float precision');
  const attack=profileFor('kiem','attack');
  const c=sampleDirection('kiem','attack',5*attack.duration,0);
  assert.equal(c.progress,1);
