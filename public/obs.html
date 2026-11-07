@@ -1,1 +1,9 @@
-<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Phong Ma Đài</title><style>*{box-sizing:border-box}body{margin:0;background:#0d101a;display:grid;place-items:center;height:100vh;color:#efd6a1}canvas{width:min(100vw,56.25vh);height:auto}button{position:fixed;bottom:1%;right:1%;border:1px solid #9d8059;border-radius:1em;background:#171821;color:#e4cda0;padding:.4em .8em}</style><canvas width="540" height="960"></canvas><button>Bật âm</button><script type="module" src="/arena.js"></script></html>
+<!doctype html><html lang="vi"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Tam Phái Trấn Ma — LIVE</title><style>
+:root{color-scheme:dark}*{box-sizing:border-box}html,body{padding:0;margin:0;width:100%;height:100%;overflow:hidden;background:#080b17;color:#ffead4}
+main{height:100%;width:100%;display:grid;place-items:center}canvas{display:block;width:min(100vw,56.25vh);height:min(100vh,177.77778vw);object-fit:contain;background:#1d1834}
+#audio-enable{position:fixed;z-index:9;right:12px;bottom:12px;padding:10px 15px;border-radius:10px;background:#241b31ee;color:#ffe7ae;border:1px solid #bb8f54;font:600 14px sans-serif;cursor:pointer;box-shadow:0 0 12px #2d1d31}
+#audio-status{position:fixed;top:7px;left:7px;right:7px;text-align:center;font:12px sans-serif;color:#ffc2c2;background:#221322;padding:5px}
+</style></head><body><main><canvas id="game" width="540" height="960" aria-label="Tam Phái Trấn Ma live battle"></canvas></main>
+<button id="audio-enable" title="Cho phép OBS Browser Source phát âm thanh">♫ Bật âm thanh</button><output hidden id="audio-status"></output>
+<script type="module" src="/arena.js"></script></body></html>

@@ -1,2 +1,8 @@
 node_modules/
-save.json*
+*.log
+scores.json
+scores.json.tmp
+.DS_Store
+save.json
+.env
+.env.*

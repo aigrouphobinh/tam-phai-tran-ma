@@ -1,20 +1,82 @@
-# Tam Phái Trấn Ma
+# Tam Phái Trấn Ma — Product V2: Animation & Sound
 
-Game boss raid local cho TikTok LIVE. Dùng Node.js 22 trở lên. Mở terminal trong thư mục dự án và chạy `npm start` hoặc mở `start.cmd` trên Windows. Giả lập chạy ngay với Node, kể cả khi chưa cài connector.
+Ứng dụng LIVE game chạy cục bộ bằng **Node.js 22+**, không cần API AI trả phí. Đây là một bản engine + renderer đang chạy, **không phải ảnh giao diện hay video mô phỏng**.
 
-- Điều khiển tại http://127.0.0.1:8788/admin. Bấm **Bắt đầu giả lập**, mở đấu trường và thử quà.
-- Trong OBS thêm Browser Source http://127.0.0.1:8788/obs, kích thước 540 × 960, 30 FPS. Mở Interact và bấm **Bật âm** để nghe hiệu ứng.
-- Để nhận sự kiện thật, chạy `npm install tiktok-live-connector@2.5.0`, khởi động lại server, nhập tên kênh đang LIVE ở trang điều khiển. Trạng thái kết nối và lỗi hiển thị tại đó. Khả năng kết nối phụ thuộc quyền truy cập của TikTok và dịch vụ ký mà connector sử dụng.
-- Kiểm thử bằng `npm test`. Server chỉ lắng nghe ở loopback. Đổi cổng bằng biến PORT.
+## Chạy trên Windows 10/11
 
-## Phần 1 · Sân luyện tập và đòn đánh thường
+1. Giải nén vào thư mục mới, ví dụ `C:\TamPhaiTranMaV2`.
+2. Chạy `start.cmd` hoặc mở PowerShell:
 
-Ở /admin chọn **Mở sân luyện tập**, thêm một đệ tử rồi xem /obs. Sân trống sẽ chờ cho tới khi có người. Đệ tử đi từ cổng trái vào tầm theo môn phái, chuẩn bị đòn, đánh trúng rồi hồi đòn. Server tính vị trí, khiên, máu và điểm. Các snapshot giúp OBS mở giữa trận vẫn thấy vị trí hiện tại. Sân luyện không tự phát quà.
+```powershell
+cd C:\TamPhaiTranMaV2
+node server.mjs
+```
 
-## Luật trận
+3. Mở `http://127.0.0.1:8788/admin` → nhấn **Bắt đầu sân luyện**.
+4. Trang game: `http://127.0.0.1:8788/obs`. Nhấn **Bật âm thanh** ngay trên trang để mở AudioContext. Nếu dùng OBS Browser Source, mở **Interact** và nhấn **Bật âm thanh** trong Browser Source.
+5. Trong OBS thêm **Browser Source**: URL `http://127.0.0.1:8788/obs`, kích thước **540 × 960**, đặt FPS 30 hoặc 60 phù hợp cấu hình. Bật tùy chọn điều khiển âm thanh qua OBS nếu cần.
+6. Tại Admin chọn môn phái và Bậc 1–5: từng lần nhấn gửi hành động đến server, server thực hiện tính toán HP/heal/buff rồi phát animation event cho renderer.
 
-Chat !kiem, !huyen hoặc !linh để nhập môn. Người chưa nhập môn gửi quà được xếp vào Kiếm Tông. Mỗi trận kéo dài tối đa 240 giây từ người đầu tiên, mỗi nhân vật tự đóng góp sát thương. !skill hồi sau 8 giây. Like tích thanh hợp kích. Quà kích hoạt một trong 15 chiêu, bậc 1–5 theo tổng giá trị 1 / 5 / 20 / 100 / 500. Chuỗi có cờ streak chốt khi nhận repeatEnd. Boss tăng sức mạnh ở hai ngưỡng máu và dựng khiên mỗi 30 giây. Hết thời gian hoặc trận pháp vỡ thì thua. Sau bảng vinh danh 12 giây, mở trận mới.
+Chế độ **DEMO** là một trận đánh thật do cùng engine xử lý, nhưng người tham gia được tạo từ dữ liệu thử. Chế độ **LIVE** sử dụng sự kiện nhận trực tiếp từ TikTok và chỉ tạo nhân vật khi xác định được tài khoản.
 
-## Kiến trúc
+## Kết nối TikTok LIVE thật
 
-live.mjs nhận CHAT / LIKE / GIFT theo giao diện connector dùng ở tiktok-live-temple-rpc. Dữ liệu chuẩn hóa và sự kiện giả lập đi vào Raid.input. raid.mjs quản lý trận theo giây; combat.mjs chọn bậc chiêu. server.mjs truyền snapshot qua SSE, kể cả khi OBS mở lại. Arena chỉ vẽ tối đa 40 nhân vật ở 540 × 960 và tổng hợp âm bằng Web Audio. Bảng điểm cộng dồn được lưu vào save.json khi kết trận. Trận đang chơi giữ trong RAM. Chuyển chế độ trên trang điều khiển sẽ bắt đầu phiên mới.
+```powershell
+npm install tiktok-live-connector@2.5.0
+npm start
+```
+
+- Trong Admin, nhập tên kênh đang LIVE và nhấn **Kết nối LIVE thật**.
+- `!kiem`, `!huyen`, `!linh`: chọn môn. `!skill`: kỹ năng bậc 1 miễn phí, cooldown 12 giây.
+- Một sự kiện quà đã chốt combo đi vào sổ chống trùng, sau đó cấp bậc tương ứng với giá trị kim cương trong sự kiện.
+- `roomUser` chỉ cung cấp **số lượng người xem**; không tự dựng danh sách người xem và tên không tồn tại.
+- Connector không chính thức có thể bị TikTok thay đổi; chưa kiểm thử kết nối đến một tài khoản đang LIVE trong phiên build này. Không có yêu cầu API key trả phí trong bản chạy demo.
+
+## Chất lượng hiệu ứng V2
+
+- **Hình ảnh:** 540×960, Canvas 2D sử dụng các lớp art riêng (background, boss, fighters, VFX, HUD); animation theo `requestAnimationFrame`, mục tiêu 60 FPS. Có cap 600 particles và 40 actor hiển thị, còn server xử lý toàn bộ người nhập môn.
+- **Boss:** trạng thái idle/windup/impact/stun, vũ khí liềm vẽ riêng có hoạt ảnh, vòng triệu hồi, shield, AoE warning và flash/vibration.
+- **Kiếm Tông:** sword slash, rain of swords, spell circle và rồng vàng vẽ chuyển động theo thời gian.
+- **Huyền Môn:** talisman, tia sét phân nhánh và trận pháp có vòng rune quay.
+- **Linh Dược:** vòng hồi phục, hoa sen cánh rời, phượng hoàng xanh, hồi sinh và số HP xanh.
+- **Âm thanh:** 15 MP3 mono (compressed for GitHub; WAV stereo originals from source generator) do generator trong repo tổng hợp thành sample thật. Có mixer spatial panning, limiter/compressor, BGM bus, SFX bus và giới hạn polyphony.
+- **Tính toán:** server thực hiện damage/heal/shield, player HP, boss 4 giai đoạn, 8 giây phá khiên và damage theo hitbox trước khi gửi event.
+- **Giao diện:** thanh boss, số người LIVE từ nguồn thật, hiệu ứng và trạng thái, HUD ba môn, 5 bậc quà tặng.
+
+## Files
+
+| File | Chức năng |
+| --- | --- |
+| `server.mjs` | HTTP, SSE, điều khiển, TikTok adapter, save điểm |
+| `engine.mjs` | Máy chủ điều khiển chiến đấu, trạng thái boss/người chơi |
+| `public/arena.js` | Render nhân vật, boss, hiệu ứng và HUD |
+| `public/fx.js` | VFX particle/projectile/lightning/lotus/phoenix/dragon |
+| `public/audio.js` | SoundBank tải 15 MP3 và mix âm thanh |
+| `public/obs.html` | Trang chiến trường dùng cho OBS |
+| `public/admin.html` | Admin LIVE, sandbox kỹ năng, bảng sự kiện |
+| `public/assets/arena-background.webp` | Nền trường đấu không chứa nhân vật tĩnh |
+| `public/assets/boss-reference.webp` | Sprite boss tách từ ảnh người dùng gửi và tạo alpha mask |
+| `generate_sfx.py` | Tạo lại bộ MP3 gốc, phụ thuộc numpy/scipy (chỉ cần khi phát triển audio) |
+
+## Kiểm thử
+
+```powershell
+npm test
+```
+
+7 tests thuộc engine, không cần kết nối TikTok hay browser. Máy host tác giả hiện chạy qua Node 22; API tĩnh, SSE, WAV trả 200; chưa kiểm thử chất lượng FPS trực quan trên Windows/OBS thực tế.
+
+## Giới hạn và việc còn cần hoàn thiện trước khi livestream quy mô lớn
+
+1. Boss hiện là **sprite layer + vũ khí tách và procedural VFX**, chưa phải rig xương Spine/DragonBones từng chi được hoàn thiện. Hình chuyển động có thực nhưng chưa phải full skeletal-animation production.
+2. Ba nhân vật môn phái hiện được vẽ bằng vector tách bộ phận với walk/attack/cast/down/revive; chưa có sprite atlas nhân vật vẽ tay cuối cùng.
+3. Âm WAV là sample gốc được tạo tự động, bản phân phối nén MP3; cần nghe trên hệ thống OBS/loa thật để cân bằng và master chuyên nghiệp.
+4. Hiện có snapshot SSE, điểm lưu bằng JSON; chưa có SQLite event replay/chống mất trận đầy đủ khi crash.
+5. TikTok LIVE chưa được thực nghiệm trực tiếp; phiên bản connector có thể bị hạn chế tùy vùng/kênh và dịch vụ ký.
+6. Tư liệu boss cắt từ ảnh tham chiếu của người dùng; kiểm tra quyền sử dụng hình mẫu trước khi khai thác thương mại. Nền được tạo mới cho dự án.
+
+**Mức độ hoàn thiện:** playable V2 để kiểm tra animation/audio thật, chưa xác nhận phát hành thương mại. Không nhầm "đã code" với "đã nghiệm thu sản phẩm".
+
+## Phát triển trên main
+
+Bản V2 dùng `engine.mjs` và renderer `public/arena.js`. Các module V1 (`raid.mjs`, `fighters.mjs`, `combat.mjs`, `live.mjs` và bộ kiểm thử cũ) được giữ lại trong repository để tham chiếu, không tham gia vào entrypoint V2. Mọi thay đổi tới live/gameplay cần thêm test vào `tests/engine.test.mjs`.
