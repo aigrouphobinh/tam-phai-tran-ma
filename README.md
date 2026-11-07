@@ -80,3 +80,16 @@ npm test
 ## Phát triển trên main
 
 Bản V2 dùng `engine.mjs` và renderer `public/arena.js`. Các module V1 (`raid.mjs`, `fighters.mjs`, `combat.mjs`, `live.mjs` và bộ kiểm thử cũ) được giữ lại trong repository để tham chiếu, không tham gia vào entrypoint V2. Mọi thay đổi tới live/gameplay cần thêm test vào `tests/engine.test.mjs`.
+
+## Hoạt ảnh 2D riêng từng model (V3)
+
+Vào **http://127.0.0.1:8788/models** (hoặc nhấn liên kết ngay trong /admin) để mở **2D Animation Lab**. Trang này **dùng chính model renderer `public/models2d.js` của /obs**, không phải clip/video giả lập.
+
+- **Kiếm Tông:** rig tay cầm kiếm, nhát chém, hai chân chạy so le, áo choàng theo bước di chuyển và phản ứng bị đánh.
+- **Huyền Môn:** rig tay kết ấn, bùa phép xoay và tà áo tím chuyển động.
+- **Linh Dược:** rig pháp trượng, liên hoa và động tác nâng tay hồi phục.
+- **Hồng Liên Ma Tướng:** rig đầu, tóc, tay cầm liềm, tay tung pháp, váy, lụa phía sau, pháp trận và trạng thái choáng.
+- Tất cả nhân vật có 8 trạng thái `idle`, `run`, `attack`, `cast`, `hit`, `down`, `revive`, `victory` (boss có chuỗi trạng thái phù hợp riêng).
+- Bạn có thể chọn từng hoạt ảnh hoặc bật chuỗi chạy tự động. Trên đấu trường thật, hoạt ảnh được kích hoạt theo state từ **Node.js RaidEngine**, không phát độc lập với chiến đấu.
+
+**Lưu ý mỹ thuật:** Đây là cutout rig 2D tạo hình bằng Canvas với khớp chuyển động; **chưa phải nhân vật Spine/Rive có atlas mỹ thuật được tách và rig thủ công**. Những rig hiện tại cho thấy chuyển động rõ ràng nhưng vẫn cần nâng cấp sprite/texture và kiểm tra FPS trên máy OBS để đạt mức hoàn thiện thương mại. Chạy `npm test` để kiểm thử state machine và các tư thế 2D.
