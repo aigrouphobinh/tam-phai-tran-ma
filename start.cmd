@@ -15,6 +15,5 @@ if not exist node_modules\tiktok-live-connector (
 echo Tam Phai Tran Ma - http://127.0.0.1:8788
 echo OBS URL: http://127.0.0.1:8788/obs
 echo Nhan Ctrl+C de luu va dung server.
-start "" "http://127.0.0.1:8788"
-node server.mjs
+node server.mjs --open
 if errorlevel 1 pause

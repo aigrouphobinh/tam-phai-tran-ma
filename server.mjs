@@ -104,5 +104,11 @@ export async function createGameServer({port=Number(process.env.PORT||8788),data
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  const app=await createGameServer();console.log(`Tam Phái Trấn Ma · http://127.0.0.1:${app.server.address().port} · OBS /obs`);
+ if(process.argv.includes('--open')){
+  const {spawn}=await import('node:child_process'),url=`http://127.0.0.1:${app.server.address().port}`;
+  const [command,args]=process.platform==='win32'?['cmd.exe',['/d','/s','/c','start','""',url]]:process.platform==='darwin'?['open',[url]]:['xdg-open',[url]];
+  const browser=spawn(command,args,{stdio:'ignore',detached:true,windowsHide:true});
+  browser.on('error',()=>console.log('Mở trình duyệt tại '+url));browser.unref();
+ }
  for(const sig of ['SIGINT','SIGTERM'])process.once(sig,()=>app.close().then(()=>process.exit()));
 }
