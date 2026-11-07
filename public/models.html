@@ -18,7 +18,7 @@ label{margin-left:auto;display:flex;gap:8px;align-items:center}input{accent-colo
 </style></head><body>
 <header><h1>TAM PHÁI TRẤN MA · 2D Animation Lab</h1><nav><a href="/obs">Đấu trường OBS</a> · <a href="/admin">Điều khiển</a></nav></header>
 <main>
-<p>Đây là bộ 4 sprite anime RGBA được tích hợp vào OBS. Các động tác hiện là chuyển động gốc của ảnh; bộ bone rig tách tay, chân, tóc và vải là hạng mục tiếp theo trong Issue #5.</p>
+<p>Đây là bộ 4 sprite anime RGBA được tích hợp vào OBS. Hiện game dùng ảnh WebP thật với biến dạng mesh để tăng chuyển động; khớp xương tách layer và frame atlas vẽ riêng vẫn đang phát triển trong Issue #5.</p>
 <canvas id="stage" width="960" height="580"></canvas>
 <div class="controls" id="controls" role="group" aria-label="Chọn hoạt ảnh">
 <button data-state="idle" aria-pressed="true">Đứng chờ</button>
@@ -45,7 +45,7 @@ import {SkinRenderer} from '/skin-renderer.js';
 const g=document.querySelector('#stage').getContext('2d'),models=new ModelAnimator(),skins=new SkinRenderer(),canvas=g.canvas;
 skins.load().then(info=>{
  const el=document.querySelector('#asset-status');
- el.textContent=info.ready?'Đã tải 4/4 sprite anime RGBA từ GitHub build · Chế độ texture đang bật':
+ el.textContent=info.ready?'Đã tải 4/4 ảnh RGBA · Mesh chuyển động theo hành động (atlas nhiều frame sẽ tự được dùng khi có asset)':
   'Lỗi texture: '+info.errors.join(' · ')+' — tạm dùng vector dự phòng';
  el.style.color=info.ready?'#a9f0c5':'#ffacbb';
 });
