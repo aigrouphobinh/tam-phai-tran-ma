@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2D Model Animation Lab — Tam Phái Trấn Ma</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#0b1020;color:#f8e4bc;font-family:system-ui,Arial,sans-serif}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px max(14px,calc((100vw - 1040px)/2));border-bottom:1px solid #7e6382;background:#16152c}
+h1{margin:0;font:700 clamp(18px,2.4vw,26px) Georgia}a{color:#93e0ff}
+main{max-width:1040px;margin:auto;padding:16px}p{margin:5px 0 15px;color:#c5c6d4}
+#stage{display:block;width:100%;height:auto;aspect-ratio:960/580;border-radius:14px;border:1px solid #9b7480;background:#1b1b33}
+.controls{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:16px 0}
+button{border:1px solid #907ba6;border-radius:8px;background:#2b2542;color:#efdcff;font:600 14px system-ui;padding:10px 14px;cursor:pointer}
+button[aria-pressed=true]{background:#805395;color:white;border-color:#e6b6ff}
+label{margin-left:auto;display:flex;gap:8px;align-items:center}input{accent-color:#ac7ce4}
+.legend{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:10px 0}
+.legend div{background:#161b31;border:1px solid #52455c;border-radius:10px;padding:12px;text-align:center}
+.legend small{display:block;color:#b7bccb;margin-top:4px}
+@media(max-width:700px){.legend{grid-template-columns:repeat(2,1fr)}label{margin-left:0}button{padding:9px}}
+</style></head><body>
+<header><h1>TAM PHÁI TRẤN MA · 2D Animation Lab</h1><nav><a href="/obs">Đấu trường OBS</a> · <a href="/admin">Điều khiển</a></nav></header>
+<main>
+<p>Đây là chính các model 2D mà OBS sử dụng. Chọn hành động để xem từng bộ phận của nhân vật chuyển động độc lập.</p>
+<canvas id="stage" width="960" height="580"></canvas>
+<div class="controls" id="controls" role="group" aria-label="Chọn hoạt ảnh">
+<button data-state="idle" aria-pressed="true">Đứng chờ</button>
+<button data-state="run">Chạy</button>
+<button data-state="attack">Tấn công</button>
+<button data-state="cast">Tụ pháp</button>
+<button data-state="hit">Trúng đòn</button>
+<button data-state="down">Gục ngã</button>
+<button data-state="revive">Hồi sinh</button>
+<button data-state="victory">Chiến thắng</button>
+<label><input id="cycle" type="checkbox" checked>Tự phát hoạt ảnh</label>
+</div>
+<div class="legend">
+<div><strong style="color:#7bc8ff">⚔ Kiếm Tông</strong><small>Tay kiếm · giáp · áo choàng</small></div>
+<div><strong style="color:#d7a0ff">☯ Huyền Môn</strong><small>Kết ấn · bùa phù · pháp lực</small></div>
+<div><strong style="color:#96f4bf">✿ Linh Dược</strong><small>Pháp trượng · liên hoa · hỗ trợ</small></div>
+<div><strong style="color:#ff809e">♛ Hồng Liên Ma Tướng</strong><small>Tay · liềm · tóc · dải lụa</small></div>
+</div>
+<p id="status" role="status">Đang khởi tạo model...</p>
+</main>
+<script type="module">
+import {ModelAnimator,ANIMATION_STATES} from '/models2d.js';
+const g=document.querySelector('#stage').getContext('2d'),models=new ModelAnimator(),canvas=g.canvas;
+let state='idle',selectedAt=performance.now(),lastCycle=selectedAt;
+const COLORS=['#8cd7ff','#df94ff','#a5f7c3','#ff7ca1'];
+const players=['kiem','huyen','linh'].map((f,i)=>({id:'preview-'+f,name:['Kiếm Tông','Huyền Môn','Linh Dược'][i],faction:f,
+ x:0,y:0,scale:1.1,shield:0,leader:i===0,guardian:i===2,hp:100,state:'idle'}));
+const boss={phase:2,hp:65000,maxHP:80000,bossState:'idle',cast:0,result:''};
+function select(s){
+ state=s;selectedAt=performance.now();
+ for(const p of players){p.state=s;models.observe(p,selectedAt)}
+ boss.bossState=s==='attack'?'impact':s==='cast'?'windup':s==='hit'?'stun':
+  s==='down'?'down':s==='victory'?'victory':'idle';
+ boss.hp=s==='down'?0:65000;boss.result=s==='down'?'TRẤN MA THÀNH CÔNG':'';
+ models.observeBoss(boss,selectedAt);
+ document.querySelectorAll('[data-state]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.state===s)));
+ document.querySelector('#status').textContent='Hoạt ảnh đang phát: '+document.querySelector('[data-state="'+s+'"]').textContent+' · 4 model dùng chung rig với /obs';
+}
+document.querySelectorAll('[data-state]').forEach(btn=>btn.onclick=()=>{
+ document.querySelector('#cycle').checked=false;select(btn.dataset.state)
+});
+const steps=['idle','run','attack','cast','hit','down','revive','victory'];
+function frame(){
+ const now=performance.now(),t=now/1000;
+ if(document.querySelector('#cycle').checked&&now-selectedAt>2300)select(steps[(steps.indexOf(state)+1)%steps.length]);
+ const grad=g.createLinearGradient(0,0,0,580);grad.addColorStop(0,'#332449');grad.addColorStop(.55,'#38364f');grad.addColorStop(1,'#111625');
+ g.fillStyle=grad;g.fillRect(0,0,960,580);
+ for(let i=0;i<17;i++){g.fillStyle=i%2?'#5d5270':'#50485f';g.fillRect(0,418+i*11,960,1)}
+ for(let i=0;i<4;i++){
+  const x=120+i*230;
+  g.fillStyle='rgba(8,12,30,.6)';g.fillRect(x-98,65,194,463);
+  g.strokeStyle=COLORS[i];g.lineWidth=1.2;g.strokeRect(x-98,65,194,463);
+  g.font='bold 19px Georgia';g.textAlign='center';g.fillStyle=COLORS[i];
+  g.fillText(i===0?'KIẾM TÔNG':i===1?'HUYỀN MÔN':i===2?'LINH DƯỢC':'HỒNG LIÊN',x,104);
+  if(i<3){
+   const p=players[i];models.drawPlayer(g,p,t,x,425,2.45);
+  }else{
+   g.save();g.translate(x-404*.67,410-551*.67);g.scale(.67,.67);
+   models.drawBoss(g,boss,t);g.restore();
+  }
+ }
+ g.textAlign='center';g.fillStyle='#fff1cf';g.font='bold 17px system-ui';
+ g.fillText('STATE: '+state.toUpperCase()+'  •  '+Math.round(now-selectedAt)+' ms',480,557);
+ requestAnimationFrame(frame);
+}
+select('idle');requestAnimationFrame(frame);
+</script></body></html>
