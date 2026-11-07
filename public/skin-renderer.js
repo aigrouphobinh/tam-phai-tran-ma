@@ -15,13 +15,28 @@ export function validateSkinManifest(m){
   const texture=a.texture||null,layers=Array.isArray(a.layers)?a.layers:[];
   if((!texture&&!layers.length)||(texture&&!safePath(texture))||layers.length>50)throw Error('Invalid textures '+k);
   const bones=['root','head','hair','torso','armL','armR','legL','legR','cape','weapon'];
+  const states=['idle','run','attack','cast','hit','down','revive','victory','windup','impact','stun','phase'];
+  const animations={};
+  for(const [state,clip] of Object.entries(a.animations||{})){
+   if(!states.includes(state)||!clip||!safePath(clip.texture))throw Error('Invalid animation '+k+':'+state);
+   const {frames,columns,rows,frameWidth,frameHeight,fps}=clip;
+   if(!Number.isSafeInteger(frames)||frames<1||frames>256||
+      !Number.isSafeInteger(columns)||columns<1||columns>32||
+      !Number.isSafeInteger(rows)||rows<1||rows>32||
+      frames>columns*rows||!Number.isSafeInteger(frameWidth)||frameWidth<8||frameWidth>2048||
+      !Number.isSafeInteger(frameHeight)||frameHeight<8||frameHeight>2048||
+      !Number.isFinite(fps)||fps<=0||fps>60)
+    throw Error('Invalid animation dimensions '+k+':'+state);
+   animations[state]={texture:clip.texture,frames,columns,rows,frameWidth,frameHeight,
+    fps,loop:clip.loop!==false};
+  }
   for(const l of layers){
    if(!safePath(l.texture)||!bones.includes(l.bone||'root'))throw Error('Invalid layer '+k);
    for(const f of ['x','y','rotation','width','height','pivotX','pivotY'])if(l[f]!==undefined&&!Number.isFinite(l[f]))throw Error('Nonfinite rig value '+k);
   }
   actors[k]={texture,anchor:a.anchor,renderHeight:a.renderHeight,
    layers:layers.map(l=>({bone:'root',x:0,y:0,rotation:0,width:.5,height:.5,pivotX:.5,pivotY:.5,...l})),
-   sourceArt:typeof a.sourceArt==='string'?a.sourceArt:null};
+   sourceArt:typeof a.sourceArt==='string'?a.sourceArt:null,animations};
  }
  return {version:1,actors};
 }
@@ -48,6 +63,7 @@ export class SkinRenderer{
     for(const a of Object.values(this.manifest.actors)){
      if(a.texture)paths.add(a.texture);
      for(const l of a.layers)paths.add(l.texture);
+     for(const clip of Object.values(a.animations))paths.add(clip.texture);
     }
     const errors=[];
     await Promise.all([...paths].map(async path=>{
@@ -76,7 +92,17 @@ export class SkinRenderer{
   g.save();g.translate(x,y+p.bob*(isBoss?2:1.3));
   g.rotate(p.fall*(isBoss?.6:1)+p.lean*(isBoss?.6:1));
   const wave=state==='run'?1+.018*Math.sin(t*15):1;g.scale(wave,1/wave);g.globalAlpha*=p.opacity;
-  if(a.layers.length){
+  const clip=a.animations?.[displayState]||a.animations?.[state];
+  if(clip&&this.images.has(clip.texture)){
+   const atlas=this.images.get(clip.texture);
+   const frameIndex=Math.floor(Math.max(0,age)*clip.fps);
+   const frame=clip.loop?frameIndex%clip.frames:Math.min(clip.frames-1,frameIndex);
+   const sx=(frame%clip.columns)*clip.frameWidth;
+   const sy=Math.floor(frame/clip.columns)*clip.frameHeight;
+   const w=h*clip.frameWidth/clip.frameHeight;
+   g.drawImage(atlas,sx,sy,clip.frameWidth,clip.frameHeight,
+    -w*a.anchor[0],-h*a.anchor[1],w,h);
+  }else if(a.layers.length){
    for(const l of a.layers){
     const img=this.images.get(l.texture);if(!img)continue;
     g.save();g.translate(l.x*h,l.y*h);
