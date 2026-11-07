@@ -45,8 +45,14 @@ export function drawDeformedSprite(g,image,x,y,width,height,anchor,model){
  const sw=image.naturalWidth,sh=image.naturalHeight;
  const n=height>180?26:14,sourceStep=sh/n,destStep=height/n;
  const baseX=x-width*anchor[0],baseY=y-height*anchor[1];
- const state=model?.state||'idle',m=motionAt(state,model.age||0,model.t||0,
+ const state=model?.state||'idle',base=motionAt(state,model.age||0,model.t||0,
   model.style||'kiem',model.duration||.55);
+ // Author-directed shape pushes supplement existing per-pixel cloth movement.
+ // This is a genuine texture warp, not a claim that painted sprite poses exist yet.
+ const d=model?.motion;
+ const m=d?{upper:base.upper*.42+d.upper*.65,
+  mid:base.mid*.44+d.mid*.62,lower:base.lower*.44+d.lower*.65,
+  flutter:base.flutter*.50+Math.abs(d.cloth)*.30}:base;
  const dist=Math.min(12,Math.max(1.5,width*.035));
  const draw=(sx,sy,sWidth,sHeight,dx,dy,dWidth,dHeight)=>{
   g.drawImage(image,sx,sy,sWidth,sHeight,dx,dy,dWidth,dHeight);
