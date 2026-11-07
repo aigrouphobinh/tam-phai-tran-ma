@@ -89,7 +89,11 @@ export class SkinRenderer{
   const displayState=state==='windup'?'cast':state==='impact'?'attack':state==='stun'?'hit':state;
   const p=getPose(displayState,age,t,track?.seed||.6,track?.duration||.55);
   const h=a.renderHeight*(isBoss?1:(actor.scale||.82)/.82)*zoom;
-  const direction=sampleDirection(key,state,age,t);
+  // Non-looping combat clips respect the duration sent by RaidEngine.
+  // Idle/run/phase keep their authored loop period instead of accidentally using 420 ms defaults.
+  const combatClip=['attack','cast','hit','revive','impact','stun'].includes(state);
+  const direction=sampleDirection(key,state,age,t,
+    combatClip&&track?.duration>0?track.duration:null);
   g.save();g.globalAlpha=.35;g.fillStyle='#060918';g.beginPath();g.ellipse(x,y,Math.min(55,h*.26),Math.min(12,h*.07),0,0,Math.PI*2);g.fill();g.restore();
   g.save();g.translate(x+direction.x*(isBoss?.94:.75),y+p.bob*(isBoss?2:1.3)+direction.y*(isBoss?1.15:.83));
   // The drawing pose is derived from authored actor-specific keyframes; no client-side damage calculation.
