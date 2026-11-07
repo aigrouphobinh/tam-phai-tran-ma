@@ -112,7 +112,7 @@ http.createServer(async(req,res)=>{
    }
    sendAll();res.writeHead(200,{'Content-Type':'application/json'}).end(JSON.stringify({ok:true,status,round:raid.round}));return;
   }
-  let pathname=(u.pathname==='/'||u.pathname==='/admin')?'/admin.html':u.pathname==='/obs'?'/obs.html':u.pathname;
+  let pathname=(u.pathname==='/'||u.pathname==='/admin')?'/admin.html':u.pathname==='/obs'?'/obs.html':u.pathname==='/models'?'/models.html':u.pathname;
   if(pathname.includes('\0')||pathname.includes('\\')){res.writeHead(400).end();return}
   const abs=resolve(ROOT,'.'+pathname);
   if(!abs.startsWith(ROOT+sep)){res.writeHead(403).end();return}
