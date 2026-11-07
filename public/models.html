@@ -49,10 +49,15 @@ const players=['kiem','huyen','linh'].map((f,i)=>({id:'preview-'+f,name:['Kiếm
 const boss={phase:2,hp:65000,maxHP:80000,bossState:'idle',cast:0,result:''};
 function select(s){
  state=s;selectedAt=performance.now();
- for(const p of players){p.state=s;models.observe(p,selectedAt)}
+ for(const p of players){
+  p.state=s;p.actionSeq=(p.actionSeq||0)+1;
+  p.actionDuration=s==='cast'?1.15:s==='revive'?1.1:s==='attack'?.7:.55;
+  models.observe(p,selectedAt);
+ }
  boss.bossState=s==='attack'?'impact':s==='cast'?'windup':s==='hit'?'stun':
   s==='down'?'down':s==='victory'?'victory':'idle';
  boss.hp=s==='down'?0:65000;boss.result=s==='down'?'TRẤN MA THÀNH CÔNG':'';
+ boss.bossActionSeq=(boss.bossActionSeq||0)+1;boss.bossActionDuration=.85;
  models.observeBoss(boss,selectedAt);
  document.querySelectorAll('[data-state]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.state===s)));
  document.querySelector('#status').textContent='Hoạt ảnh đang phát: '+document.querySelector('[data-state="'+s+'"]').textContent+' · 4 model dùng chung rig với /obs';
@@ -63,7 +68,11 @@ document.querySelectorAll('[data-state]').forEach(btn=>btn.onclick=()=>{
 const steps=['idle','run','attack','cast','hit','down','revive','victory'];
 function frame(){
  const now=performance.now(),t=now/1000;
- if(document.querySelector('#cycle').checked&&now-selectedAt>2300)select(steps[(steps.indexOf(state)+1)%steps.length]);
+ if(document.querySelector('#cycle').checked&&now-selectedAt>2100)
+  select(steps[(steps.indexOf(state)+1)%steps.length]);
+ else if(!document.querySelector('#cycle').checked&&
+   ['attack','cast','hit','revive','down','victory'].includes(state)&&now-selectedAt>(state==='cast'?1500:1150))
+  select(state); // keep replaying the selected action for visual inspection
  const grad=g.createLinearGradient(0,0,0,580);grad.addColorStop(0,'#332449');grad.addColorStop(.55,'#38364f');grad.addColorStop(1,'#111625');
  g.fillStyle=grad;g.fillRect(0,0,960,580);
  for(let i=0;i<17;i++){g.fillStyle=i%2?'#5d5270':'#50485f';g.fillRect(0,418+i*11,960,1)}
