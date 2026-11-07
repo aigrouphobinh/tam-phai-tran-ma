@@ -30,51 +30,89 @@ function ornament(g,x,y,col,n=5,r=7,rotation=0){
  oval(g,0,0,2.8,2.8,'#ffefc8');g.restore()
 }
 function spark(g,x,y,r,col){stroke(g,[[x-r,y],[x+r,y]],col,1.2,5);stroke(g,[[x,y-r],[x,y+r]],col,1.2,5);oval(g,x,y,1.4,1.4,'#fff')}
-export function getPose(state='idle',age=0,t=0,seed=0){
- const c=Math.sin(t*2.6+seed),step=Math.sin(age*15+seed),u=lim(age/.42);
- const result={bob:c*.9,lean:c*.012,legL:c*.016,legR:-c*.016,armL:-.05,armR:.08,
+// All combat animation phases are deterministic curves, not random poses.
+// Attack: 0–25% anticipation, 25–56% impact, 56–100% follow-through & recovery.
+// Cast: 0–30% channel, 30–64% hold, 64–100% release and recovery.
+export function getPose(state='idle',age=0,t=0,seed=0,duration=.42){
+ const c=Math.sin(t*2.6+seed),step=Math.sin(t*15+seed);
+ const d=duration>0?duration:.42,u=lim(age/d);
+ const burst=(x,a,b,c)=>x<a?0:x<b?ease((x-a)/(b-a)):x<c?1-ease((x-b)/(c-b)):0;
+ const idle={bob:c*.9,lean:c*.012,legL:c*.016,legR:-c*.016,armL:-.05,armR:.08,
   head:c*.015,coat:c*1.3,weapon:c*.07,fall:0,opacity:1,light:0};
  switch(state){
   case 'run':
-   return {...result,bob:Math.abs(step)*2.3,lean:.16,legL:step*.68,legR:-step*.68,
+   return {...idle,bob:Math.abs(step)*2.3,lean:.16,legL:step*.68,legR:-step*.68,
     armL:-step*.48,armR:step*.48,head:-.08,coat:step*4.5};
-  case 'attack':
-   return {...result,bob:-pulse(u,.07,.75)*2,lean:-.17*pulse(u,.07,.8),legL:.21,legR:-.25,
-    armL:-.45,armR:mix(-1.08,1.58,ease(u)),head:-.08,coat:7*pulse(u,.1,.9),
-    weapon:mix(-.8,1.3,ease(u)),light:pulse(u,.23,.78)};
+  case 'attack':{
+   const anticipation=ease(u/.25),strike=ease((u-.25)/.31),recover=ease((u-.56)/.44);
+   const armR=mix(mix(.08,-1.2,anticipation),1.5,strike);
+   const blade=mix(-.6,1.1,strike);
+   return {...idle,bob:-2.5*burst(u,.12,.48,.85),lean:-.19*burst(u,.06,.42,.92),
+    legL:.25*(1-recover),legR:-.22*(1-recover),armL:-.4*(1-recover),
+    armR:mix(armR,.08,recover),head:-.1*(1-recover),coat:9*burst(u,.2,.52,1),
+    weapon:mix(blade,0,recover),light:burst(u,.3,.45,.78)};
+  }
   case 'cast':
-   return {...result,bob:-2.5*pulse(u,.05,.82),lean:-.09,
-    armL:mix(-.6,-1.8,ease(u)),armR:mix(.1,-2.0,ease(u)),
-    head:-.14,coat:4*pulse(u,.1,.9),weapon:-.4,light:pulse(u,.1,.84)};
+  case 'phase':{
+   const raise=ease(u/.30),drop=ease((u-.64)/.36);
+   const amount=state==='phase'?1.2:1;
+   return {...idle,bob:-2.5*burst(u,.05,.32,.92),lean:-.09*amount,
+    armL:mix(mix(-.05,-1.8*amount,raise),-.05,drop),
+    armR:mix(mix(.08,-2.0*amount,raise),.08,drop),
+    head:-.14*(1-drop),coat:4.5*burst(u,.1,.54,1),
+    weapon:-.4*(1-drop),light:burst(u,.12,.46,.96)};
+  }
   case 'hit':
-   return {...result,bob:2,lean:.33*(1-ease(u)),head:.18,
-    armL:.8*(1-ease(u)),armR:.6*(1-ease(u)),coat:-6*(1-ease(u)),light:1-ease(u)};
-  case 'down':
-   return {...result,bob:8,fall:-1.28,armR:1.4,armL:-.8,legL:.6,legR:-.4,opacity:.78};
-  case 'revive':
-   return {...result,bob:mix(11,-3,ease(lim(age/1.1))),fall:mix(-1.28,0,ease(lim(age/1.1))),
-    armR:-1.5,armL:-1.3,opacity:mix(.45,1,ease(lim(age/1.1))),light:1};
+   return {...idle,bob:2,lean:.33*(1-ease(u)),head:.18*(1-ease(u)),
+    armL:.8*(1-ease(u)),armR:.6*(1-ease(u)),
+    coat:-6*(1-ease(u)),light:1-ease(u)};
+  case 'down':{
+   const fall=ease(lim(age/.48));
+   return {...idle,bob:mix(0,8,fall),fall:-1.28*fall,
+    armR:mix(.08,1.4,fall),armL:mix(-.05,-.8,fall),
+    legL:.6*fall,legR:-.4*fall,opacity:1-.22*fall};
+  }
+  case 'revive':{
+   const rise=ease(lim(age/1.1));
+   return {...idle,bob:mix(11,-3,rise),fall:mix(-1.28,0,rise),
+    armR:mix(.8,-1.5,rise),armL:mix(-.7,-1.3,rise),
+    opacity:mix(.45,1,rise),light:1-rise*.45};
+  }
   case 'victory':
-   return {...result,bob:-2+Math.abs(Math.sin(t*5))*2,armR:-2.4+Math.sin(t*7)*.19,
-    armL:-.9,legL:.1,light:.6};
-  default:return result;
+   return {...idle,bob:-2+Math.abs(Math.sin(t*5))*2,
+    armR:-2.4+Math.sin(t*7)*.19,armL:-.9,legL:.1,light:.6};
+  default:return idle;
  }
 }
 export class ModelAnimator{
- constructor(){this.states=new Map();this.boss={state:'idle',since:0}}
- observe(p,at=performance.now()){
+ constructor(){this.states=new Map();this.boss={state:'idle',seq:0,since:0,duration:.42}}
+ observe(p,at=performance.now(),serverElapsed=null){
   const old=this.states.get(p.id);
-  if(!old||old.state!==p.state)this.states.set(p.id,{state:p.state||'idle',since:at,seed:hash(p.id)*.1});
+  const state=p.state||'idle',seq=p.actionSeq??state;
+  // Preserve the pose across 10 Hz snapshots and restart it for repeated same-state attacks.
+  if(!old||old.state!==state||old.seq!==seq){
+   const offset=Number.isFinite(serverElapsed)&&Number.isFinite(p.actionAt)
+     ?lim(serverElapsed-p.actionAt,0,4):0;
+   this.states.set(p.id,{state,seq,since:at-offset*1000,
+     duration:p.actionDuration>0?p.actionDuration:.42,seed:hash(p.id)*.1});
+  }
  }
- observeBoss(s,at=performance.now()){
-  let next=s?.result?(s.hp<=0?'down':'victory'):(s?.bossState==='stun'?'stun':s?.cast>0?'windup':(s?.bossState||'idle'));
-  if(next!==this.boss.state)this.boss={state:next,since:at};
+ observeBoss(s,at=performance.now(),serverElapsed=null){
+  const next=s?.result?(s.hp<=0?'down':'victory'):
+   (s?.bossState==='stun'?'stun':s?.cast>0?'windup':(s?.bossState||'idle'));
+  const seq=s?.bossActionSeq??next;
+  if(next!==this.boss.state||seq!==this.boss.seq){
+   const offset=Number.isFinite(serverElapsed)&&Number.isFinite(s?.bossActionAt)
+     ?lim(serverElapsed-s.bossActionAt,0,4):0;
+   this.boss={state:next,seq,since:at-offset*1000,
+     duration:s?.bossActionDuration>0?s.bossActionDuration:.55};
+  }
  }
  dropInactive(ids){for(const id of this.states.keys())if(!ids.has(id))this.states.delete(id)}
  drawPlayer(g,p,t,x=p.x,y=p.y,zoom=1){
   this.observe(p);
   const track=this.states.get(p.id),age=Math.max(0,t-track.since/1000);
-  const pose=getPose(track.state,age,t,track.seed);
+  const pose=getPose(track.state,age,t,track.seed,track.duration);
   const art=FACTION_ART[p.faction]||FACTION_ART.kiem;
   const sz=(p.scale??.82)*zoom;
   g.save();g.translate(x,y);g.scale(sz,sz);g.globalAlpha*=pose.opacity;
@@ -119,8 +157,8 @@ export class ModelAnimator{
   const age=Math.max(0,t-this.boss.since/1000),bossState=this.boss.state;
   const cast=bossState==='windup'||s.cast>0,stun=bossState==='stun';
   const impact=bossState==='impact';
-  const state=bossState==='down'?'down':cast?'cast':stun?'hit':impact?'attack':'idle';
-  const p=getPose(state,age,t,.6);
+  const state=bossState==='down'?'down':bossState==='victory'?'victory':bossState==='phase'?'phase':cast?'cast':stun||bossState==='hit'?'hit':impact?'attack':'idle';
+  const p=getPose(state,age,t,.6,this.boss.duration);
   const enraged=s.phase>=4;
   const xx=404+(stun?Math.sin(t*32)*5:0),yy=551+p.bob*2;
   g.save();g.translate(xx,yy);
