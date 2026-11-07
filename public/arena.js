@@ -1,11 +1,12 @@
 import {Effects} from './fx.js';
 import {SoundBank} from './audio.js';
+import {ModelAnimator} from './models2d.js';
 
 const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d',{alpha:false});
 const W=540,H=960,TAU=Math.PI*2;
 const BG=new Image();BG.src='/assets/arena-background.webp';
 const BOSS=new Image();BOSS.src='/assets/boss-reference.webp';
-const fx=new Effects(),audio=new SoundBank();
+const fx=new Effects(),audio=new SoundBank(),models=new ModelAnimator();
 const COLORS={kiem:'#64bcff',huyen:'#cc76f9',linh:'#76f3bd',gold:'#ffdc8a',red:'#f15e86'};
 const CLASS={kiem:'KIẾM TÔNG',huyen:'HUYỀN MÔN',linh:'LINH DƯỢC'};
 const SKILLS=[['KIẾM KHÍ','1'],['LÔI KÍCH','2'],['PHONG ẤN','3'],['HỒI SINH','4'],['KIM LONG','5']];
@@ -42,81 +43,13 @@ function drawBackground(t){
  const bottom=ctx.createLinearGradient(0,650,0,960);bottom.addColorStop(0,'transparent');bottom.addColorStop(.38,'rgba(8,13,29,.6)');bottom.addColorStop(1,'rgba(6,11,29,.97)');ctx.fillStyle=bottom;ctx.fillRect(0,640,W,320);
  floatingDust(t);ctx.restore()
 }
-function drawBoss(t,s){
- const hpPct=s.hp/Math.max(1,s.maxHP),phase=s.phase,stun=s.bossState==='stun';
- const stateHit=fx.numbers.some(n=>n.x>300&&n.size>=18);
- const bob=Math.sin(t*2.7)*4;const cast=s.cast>0||s.bossState==='windup';
- const x=407+(stun?Math.sin(t*35)*3:0),y=442+bob;
- ctx.save();ctx.translate(x,y);
- glow(0,32,108,phase>=3?'#ff507f':'#b66cf5',.31);
- ctx.save();ctx.translate(0,48);ctx.scale(1,.32);ctx.strokeStyle=phase>=3?'#f95d7a':'#c67dfa';ctx.shadowBlur=24;ctx.shadowColor=ctx.strokeStyle;ctx.lineWidth=3;
- ctx.beginPath();ctx.arc(0,0,80+Math.sin(t*2)*5,0,TAU);ctx.stroke();
- for(let i=0;i<12;i++){const a=t*.35+i*TAU/12,r=70;glow(Math.cos(a)*r,Math.sin(a)*r,4,'#ffa1d9',.9)}ctx.restore();
- if(BOSS.complete&&BOSS.naturalWidth){
-  const h=cast?300:296,w=h*.771;
-  ctx.save();ctx.translate(-w*.55,-h*.95);ctx.rotate(cast?Math.sin(t*13)*.035:Math.sin(t*1.9)*.012);
-  if(stateHit){ctx.shadowColor='#ff2c5a';ctx.shadowBlur=20}
-  ctx.drawImage(BOSS,0,0,w,h);ctx.restore()
- }else{
-  // Asset fallback is deliberate; state still lives independently.
-  ctx.fillStyle='#8c284f';ctx.beginPath();ctx.ellipse(0,-83,55,92,-.2,0,TAU);ctx.fill();
-  ctx.fillStyle='#d79b92';ctx.beginPath();ctx.arc(0,-142,24,0,TAU);ctx.fill();
- }
- // Separate floating lotus: this moves even though the boss character art is one source image.
- const lx=-59+Math.sin(t*1.3)*5,ly=-115+Math.sin(t*2.5)*7;
- ctx.save();ctx.translate(lx,ly);ctx.rotate(t*.35);
- for(let i=0;i<7;i++){ctx.rotate(TAU/7);ctx.fillStyle='#ed366e';ctx.shadowColor='#ff5d91';ctx.shadowBlur=15;ctx.beginPath();ctx.ellipse(0,-12,7,16,0,0,TAU);ctx.fill()}
- glow(0,0,13,'#ffe6bc',.8);ctx.restore();
- // Independently animated scythe weapon: charge, slash and recovery are phase/state driven.
- ctx.save();
- ctx.translate(56,-91);
- const phaseSwing=s.bossState==='windup'?-0.37:s.bossState==='impact'?.46:s.bossState==='stun'?.15:Math.sin(t*1.4)*.06;
- ctx.rotate(phaseSwing);
- ctx.shadowBlur=13;ctx.shadowColor='#ff538e';ctx.lineCap='round';
- const metal=ctx.createLinearGradient(-15,-145,55,115);metal.addColorStop(0,'#fce5a4');metal.addColorStop(.48,'#bd6480');metal.addColorStop(1,'#e8bc7f');
- ctx.strokeStyle='#4a1d34';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(13,122);ctx.quadraticCurveTo(30,10,31,-90);ctx.stroke();
- ctx.strokeStyle=metal;ctx.lineWidth=4;ctx.stroke();
- const blade=ctx.createLinearGradient(-60,-170,70,-80);blade.addColorStop(0,'#ffb1cf');blade.addColorStop(.45,'#ec3b75');blade.addColorStop(1,'#671a48');
- ctx.beginPath();ctx.moveTo(31,-92);ctx.bezierCurveTo(54,-183,-34,-193,-68,-171);ctx.bezierCurveTo(-25,-151,-6,-120,19,-106);ctx.bezierCurveTo(-29,-152,-46,-157,-42,-162);ctx.bezierCurveTo(5,-164,45,-130,31,-92);ctx.closePath();
- ctx.fillStyle=blade;ctx.fill();ctx.strokeStyle='#ffd9a0';ctx.lineWidth=2.6;ctx.stroke();
- ctx.restore();
- if(phase>=4){ctx.globalAlpha=.42+.18*Math.sin(t*7);glow(0,-100,125,'#fc2860',.45)}
- ctx.restore()
-}
-function robe(ctx,f){ctx.fillStyle=f==='kiem'?'#23649e':f==='huyen'?'#782d9e':'#25794f';ctx.strokeStyle=COLORS[f];ctx.lineWidth=1.2}
+// State-driven, articulated boss model: independent head, arms, scythe, skirt and ribbons.
+function drawBoss(t,s){ models.drawBoss(ctx,s,t); }
 function fighter(p,t){
- const a=anims.get(p.id)||{x:p.x,y:p.y,rx:p.x,ry:p.y};
- const dt=clamp((performance.now()-a.received)/140);const x=lerp(a.x,a.rx,dt),y=lerp(a.y,a.ry,dt);
- const state=p.state,walk=state==='run',fight=state==='attack'||state==='cast';
- const k=Math.sin(t*(walk?18:3)+p.x*.1),amp=walk?6:1.8,scale=p.scale||.82;
- ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);if(state==='down'){ctx.translate(0,-4);ctx.rotate(-1.1)}
- const isLeader=p.leader,isGuardian=p.guardian;
- if(isGuardian||isLeader){glow(0,-23,isLeader?38:28,isLeader?'#ffe39e':COLORS[p.faction],.25);}
- ctx.fillStyle='#050915aa';ctx.beginPath();ctx.ellipse(0,2,18,4,0,0,TAU);ctx.fill();
- if(p.shield>0){ctx.strokeStyle='#9dd7ff';ctx.shadowColor='#93d9ff';ctx.shadowBlur=10;ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,-21,20,33,0,0,TAU);ctx.stroke()}
- robe(ctx,p.faction);
- const leftLeg=walk?k*4:0,rightLeg=walk?-k*4:0;
- ctx.fillStyle='#161d33';ctx.fillRect(-7+leftLeg,-11,5,13);ctx.fillRect(2+rightLeg,-11,5,13);
- ctx.save();const r=ctx.createLinearGradient(0,-41,0,0);r.addColorStop(0,p.faction==='kiem'?'#b9d9ff':p.faction==='huyen'?'#ddaaf5':'#c0efca');r.addColorStop(.5,p.faction==='kiem'?'#286aa7':p.faction==='huyen'?'#873b9e':'#308d63');r.addColorStop(1,'#141b33');ctx.fillStyle=r;
- ctx.beginPath();ctx.moveTo(-9,-39);ctx.lineTo(10,-39);ctx.lineTo(12+amp*.7,-16);ctx.lineTo(20+amp,0);ctx.lineTo(-17+amp*.4,-1);ctx.lineTo(-13,-19);ctx.closePath();ctx.fill();ctx.stroke();
- ctx.strokeStyle='#f4d69b';ctx.beginPath();ctx.moveTo(-11,-23);ctx.quadraticCurveTo(0,-16,13,-23);ctx.stroke();ctx.restore();
- const swing=fight?Math.sin((p.stateUntil-(state==='attack'?.42:.42))*8+t*13)*17:0;
- ctx.lineWidth=5;ctx.strokeStyle='#d3a8a2';ctx.beginPath();ctx.moveTo(-8,-36);ctx.lineTo(-15,-23+amp*.3);
- ctx.moveTo(8,-36);ctx.lineTo(13+swing*.7,-26-swing*.6);ctx.stroke();
- if(p.faction==='kiem'){
-  ctx.save();ctx.translate(14+swing*.7,-28-swing*.6);ctx.rotate(-.42+(fight?swing*.032:0));
-  ctx.strokeStyle='#bcefff';ctx.shadowColor='#57d9ff';ctx.shadowBlur=8;ctx.lineWidth=2.3;ctx.beginPath();ctx.moveTo(0,5);ctx.lineTo(5,-28);ctx.stroke();ctx.restore();
- }else if(p.faction==='huyen'){
-  glow(16+swing*.7,-30-swing*.6,9,'#ca6cff',.65);ctx.fillStyle='#eeccff';ctx.fillRect(10+swing*.7,-36-swing*.6,9,12);
- }else{glow(16+swing*.7,-30-swing*.6,10,'#8af7b4',.8);}
- ctx.fillStyle='#ecc4ae';ctx.beginPath();ctx.ellipse(0,-46,8.2,10,0,0,TAU);ctx.fill();
- ctx.fillStyle='#14152a';ctx.beginPath();ctx.moveTo(-9,-45);ctx.quadraticCurveTo(-13,-60,0,-62);ctx.quadraticCurveTo(16,-61,8,-45);ctx.lineTo(6,-53);ctx.lineTo(-8,-49);ctx.fill();
- ctx.strokeStyle='#1c233c';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-5,-55);ctx.quadraticCurveTo(-14,-42,-9+amp,-17);ctx.stroke();
- ctx.strokeStyle=COLORS[p.faction];ctx.lineWidth=1.1;ctx.beginPath();ctx.moveTo(-8,-38);ctx.lineTo(8,-38);ctx.stroke();
- if(p.hp<100&&p.hp>0){ctx.fillStyle='#331c30';ctx.fillRect(-13,-69,26,3);ctx.fillStyle=COLORS[p.faction];ctx.fillRect(-13,-69,26*clamp(p.hp/100),3)}
- if(isLeader){text('♛',0,-77,19,'#ffdf88','center','Georgia',true)}
- if(isGuardian){glow(13,-65,5,'#ffe4a2',.8)}
- ctx.restore();
+ const a=anims.get(p.id)||{x:p.x,y:p.y,rx:p.x,ry:p.y,received:performance.now()};
+ const f=clamp((performance.now()-a.received)/140);
+ const x=lerp(a.x,a.rx,f),y=lerp(a.y,a.ry,f);
+ models.drawPlayer(ctx,p,t,x,y);
 }
 function namesAndLabels(s,t){
  const byFaction={kiem:0,huyen:0,linh:0};
@@ -182,7 +115,7 @@ function init(){
  stream.onopen=()=>connected=true;stream.onerror=()=>connected=false;
  stream.onmessage=e=>{
   let next;try{next=JSON.parse(e.data)}catch{return}
-  if(next.round!==lastRound){lastRound=next.round;lastEvent=next.events?.at(-1)?.id||0;fx.active=[];fx.particles=[];}
+  if(next.round!==lastRound){lastRound=next.round;lastEvent=next.events?.at(-1)?.id||0;fx.active=[];fx.particles=[];models.states.clear();}
   else{
    const events=(next.events||[]).filter(ev=>ev.id>lastEvent).sort((a,b)=>a.id-b.id);
    for(const ev of events){fx.receive(ev);audio.effect(ev);if(ev.type==='SKILL_CAST'){
@@ -191,10 +124,12 @@ function init(){
    }
    lastEvent=next.events?.at(-1)?.id||lastEvent;
   }
+  models.observeBoss(next);
   const prev=new Map((state?.players||[]).map(p=>[p.id,p]));
-  for(const p of next.players||[]){const old=prev.get(p.id)||p;
+  for(const p of next.players||[]){models.observe(p);const old=prev.get(p.id)||p;
    anims.set(p.id,{x:old.x,y:old.y,rx:p.x,ry:p.y,received:performance.now()})}
-  for(const id of anims.keys())if(!(next.players||[]).some(p=>p.id===id))anims.delete(id);
+  const activeIds=new Set((next.players||[]).map(p=>p.id));models.dropInactive(activeIds);
+  for(const id of anims.keys())if(!activeIds.has(id))anims.delete(id);
   state=next;
  };
 }
