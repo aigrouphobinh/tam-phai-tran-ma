@@ -18,7 +18,7 @@ label{margin-left:auto;display:flex;gap:8px;align-items:center}input{accent-colo
 </style></head><body>
 <header><h1>TAM PHÁI TRẤN MA · 2D Animation Lab</h1><nav><a href="/obs">Đấu trường OBS</a> · <a href="/admin">Điều khiển</a></nav></header>
 <main>
-<p>Đây là chính các model 2D mà OBS sử dụng. Chọn hành động để xem từng bộ phận của nhân vật chuyển động độc lập.</p>
+<p>Đây là bộ 4 sprite anime RGBA được tích hợp vào OBS. Các động tác hiện là chuyển động gốc của ảnh; bộ bone rig tách tay, chân, tóc và vải là hạng mục tiếp theo trong Issue #5.</p>
 <canvas id="stage" width="960" height="580"></canvas>
 <div class="controls" id="controls" role="group" aria-label="Chọn hoạt ảnh">
 <button data-state="idle" aria-pressed="true">Đứng chờ</button>
@@ -29,7 +29,7 @@ label{margin-left:auto;display:flex;gap:8px;align-items:center}input{accent-colo
 <button data-state="down">Gục ngã</button>
 <button data-state="revive">Hồi sinh</button>
 <button data-state="victory">Chiến thắng</button>
-<label><input id="cycle" type="checkbox" checked>Tự phát hoạt ảnh</label>
+<label><input id="cycle" type="checkbox" checked>Tự phát hoạt ảnh</label><label><input id="force-vector" type="checkbox">So sánh bản vector cũ</label>
 </div>
 <div class="legend">
 <div><strong style="color:#7bc8ff">⚔ Kiếm Tông</strong><small>Tay kiếm · giáp · áo choàng</small></div>
@@ -37,11 +37,18 @@ label{margin-left:auto;display:flex;gap:8px;align-items:center}input{accent-colo
 <div><strong style="color:#96f4bf">✿ Linh Dược</strong><small>Pháp trượng · liên hoa · hỗ trợ</small></div>
 <div><strong style="color:#ff809e">♛ Hồng Liên Ma Tướng</strong><small>Tay · liềm · tóc · dải lụa</small></div>
 </div>
-<p id="status" role="status">Đang khởi tạo model...</p>
+<p id="asset-status" role="status">Đang nạp 4 texture nhân vật...</p><p id="status" role="status">Đang khởi tạo model...</p>
 </main>
 <script type="module">
 import {ModelAnimator,ANIMATION_STATES} from '/models2d.js';
-const g=document.querySelector('#stage').getContext('2d'),models=new ModelAnimator(),canvas=g.canvas;
+import {SkinRenderer} from '/skin-renderer.js';
+const g=document.querySelector('#stage').getContext('2d'),models=new ModelAnimator(),skins=new SkinRenderer(),canvas=g.canvas;
+skins.load().then(info=>{
+ const el=document.querySelector('#asset-status');
+ el.textContent=info.ready?'Đã tải 4/4 sprite anime RGBA từ GitHub build · Chế độ texture đang bật':
+  'Lỗi texture: '+info.errors.join(' · ')+' — tạm dùng vector dự phòng';
+ el.style.color=info.ready?'#a9f0c5':'#ffacbb';
+});
 let state='idle',selectedAt=performance.now(),lastCycle=selectedAt;
 const COLORS=['#8cd7ff','#df94ff','#a5f7c3','#ff7ca1'];
 const players=['kiem','huyen','linh'].map((f,i)=>({id:'preview-'+f,name:['Kiếm Tông','Huyền Môn','Linh Dược'][i],faction:f,
@@ -60,7 +67,7 @@ function select(s){
  boss.bossActionSeq=(boss.bossActionSeq||0)+1;boss.bossActionDuration=.85;
  models.observeBoss(boss,selectedAt);
  document.querySelectorAll('[data-state]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.state===s)));
- document.querySelector('#status').textContent='Hoạt ảnh đang phát: '+document.querySelector('[data-state="'+s+'"]').textContent+' · 4 model dùng chung rig với /obs';
+ document.querySelector('#status').textContent='Hoạt ảnh đang phát: '+document.querySelector('[data-state="'+s+'"]').textContent+' · dùng cùng một renderer với /obs';
 }
 document.querySelectorAll('[data-state]').forEach(btn=>btn.onclick=()=>{
  document.querySelector('#cycle').checked=false;select(btn.dataset.state)
@@ -83,10 +90,13 @@ function frame(){
   g.font='bold 19px Georgia';g.textAlign='center';g.fillStyle=COLORS[i];
   g.fillText(i===0?'KIẾM TÔNG':i===1?'HUYỀN MÔN':i===2?'LINH DƯỢC':'HỒNG LIÊN',x,104);
   if(i<3){
-   const p=players[i];models.drawPlayer(g,p,t,x,425,2.45);
+   const p=players[i],vector=document.querySelector('#force-vector').checked;
+   if(vector||!skins.drawPlayer(g,p,t,x,425,models,1.6))models.drawPlayer(g,p,t,x,425,2.45);
   }else{
    g.save();g.translate(x-404*.67,410-551*.67);g.scale(.67,.67);
-   models.drawBoss(g,boss,t);g.restore();
+   if(document.querySelector('#force-vector').checked||!skins.drawActor(g,'boss',boss,t,404,551,models,1.15))
+     models.drawBoss(g,boss,t);
+   g.restore();
   }
  }
  g.textAlign='center';g.fillStyle='#fff1cf';g.font='bold 17px system-ui';
