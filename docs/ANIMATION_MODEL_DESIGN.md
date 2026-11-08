@@ -4,7 +4,7 @@
 
 Dùng bốn concept đã duyệt: Kiếm Tông (xanh), Huyền Môn (tím), Linh Dược (lục), Hồng Liên Ma Tướng (đỏ). Sân khấu OBS 540×960. Hệ Node.js điều khiển HP, cooldown và sát thương; renderer chỉ phát hình, hiệu ứng và âm thanh theo state, actionSeq, actionAt từ server.
 
-**Đã có trên main:** bốn ảnh nhân vật RGBA WebP thật, renderer texture, biến dạng mesh, thông số chuyển động riêng cho từng môn và trang Animation Studio. **Chưa có:** atlas vẽ tay đủ frame, layer RGBA tách tay/chân/tóc/vũ khí và bone rig production. Không đánh đồng biến dạng mesh với frame art được họa sĩ vẽ.
+**Đã có:** bốn sprite sheet RGBA WebP, tám trạng thái × bốn tư thế riêng cho mỗi nhân vật, clip riêng cho các sự kiện boss, đồng bộ action server và Animation Studio. Bộ hình được tạo từ reference gốc của dự án; không mô tả là do họa sĩ vẽ tay. Layer tách tay/chân/tóc/vũ khí, bone rig và clip 6–12 tư thế vẫn là hướng nâng cấp. Mesh chỉ còn dự phòng khi thiếu clip.
 
 ## Động tác bắt buộc và tiêu chí hình ảnh
 
@@ -54,7 +54,7 @@ Mỗi action cần 6–12 frame thực sự thay đổi pose, nền RGBA trong s
 - [x] Có keyframe art direction riêng theo từng model
 - [x] Có Animation Studio scrubbing/preview
 - [x] Có kiểm thử Node.js cho profile, loop và timeline
-- [ ] Có 8 bộ frame vẽ thực cho từng model
+- [x] Có 8 clip với tư thế riêng cho từng model (4 tư thế/clip)
 - [ ] Có layer tách và rig bone đúng anatomy
 - [ ] Có ảnh chụp QA ở từng state tại kích thước OBS 540×960
 - [ ] Có số đo FPS/audio sync trên Windows OBS thật

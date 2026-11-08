@@ -6,6 +6,19 @@ import {sampleDirection} from './animation-direction.js';
 import {drawDeformedSprite} from './sprite-mesh.js';
 const FACTIONS=['kiem','huyen','linh','boss'],clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const safePath=s=>typeof s==='string'&&/^\/assets\/characters\/[a-z0-9_-]+\.(png|webp)$/.test(s);
+const aliases={windup:'cast',impact:'attack',stun:'hit',phase:'cast'};
+// Shared by the live renderer and the studio: seeking a thumbnail must select
+// exactly the same source rectangle as the authoritative action timeline.
+export function sampleAtlasFrame(clip,age=0,actionDuration=null){
+ const duration=clip.syncToAction&&Number.isFinite(actionDuration)&&actionDuration>0
+  ?actionDuration:clip.frames/clip.fps;
+ const progress=clip.loop?(Math.max(0,age)/duration)%1:clamp(age/duration,0,1);
+ let frame=Math.min(clip.frames-1,Math.floor(progress*clip.frames));
+ if(clip.frameTimes){frame=0;for(let i=1;i<clip.frames;i++)if(progress+1e-9>=clip.frameTimes[i])frame=i;}
+ const source=(clip.startFrame||0)+frame;
+ return {frame,source,duration,progress,sx:(source%clip.columns)*clip.frameWidth,
+  sy:Math.floor(source/clip.columns)*clip.frameHeight};
+}
 export function validateSkinManifest(m){
  if(!m||m.version!==1||!m.actors||typeof m.actors!=='object')throw Error('Skin manifest version 1 required');
  const actors={};
@@ -29,8 +42,17 @@ export function validateSkinManifest(m){
       !Number.isFinite(fps)||fps<=0||fps>60||
       (clip.renderScale!==undefined&&(!Number.isFinite(clip.renderScale)||clip.renderScale<.4||clip.renderScale>2.5)))
     throw Error('Invalid animation dimensions '+k+':'+state);
+   if(clip.startFrame!==undefined&&(!Number.isSafeInteger(clip.startFrame)||clip.startFrame<0||clip.startFrame+frames>columns*rows))
+    throw Error('Invalid animation start frame '+k+':'+state);
+   if(clip.syncToAction!==undefined&&typeof clip.syncToAction!=='boolean')throw Error('Invalid animation sync '+k+':'+state);
+   if(clip.frameTimes!==undefined&&(!Array.isArray(clip.frameTimes)||clip.frameTimes.length!==frames||clip.frameTimes[0]!==0||
+    clip.frameTimes.some((n,i)=>!Number.isFinite(n)||n<0||n>=1||(i>0&&n<=clip.frameTimes[i-1]))))
+    throw Error('Invalid animation frame times '+k+':'+state);
    animations[state]={texture:clip.texture,frames,columns,rows,frameWidth,frameHeight,
-    fps,loop:clip.loop!==false,...(clip.renderScale!==undefined?{renderScale:clip.renderScale}:{})};
+    fps,loop:clip.loop!==false,...(clip.renderScale!==undefined?{renderScale:clip.renderScale}:{}),
+    ...(clip.startFrame!==undefined?{startFrame:clip.startFrame}:{}),
+    ...(clip.syncToAction!==undefined?{syncToAction:clip.syncToAction}:{}),
+    ...(clip.frameTimes!==undefined?{frameTimes:clip.frameTimes.slice()}: {})};
   }
   for(const l of layers){
    if(!safePath(l.texture)||!bones.includes(l.bone||'root'))throw Error('Invalid layer '+k);
@@ -85,7 +107,14 @@ export class SkinRenderer{
   const paths=a.texture?[a.texture]:a.layers.map(l=>l.texture);
   return paths.length>0&&paths.every(p=>this.images.has(p));
  }
- status(){return {ready:this.ready,loaded:this.images.size,actors:Object.fromEntries(FACTIONS.map(k=>[k,this.has(k)])),errors:this.errors.slice()}}
+ getClip(key,state){const clips=this.manifest?.actors?.[key]?.animations;return clips?.[state]||clips?.[aliases[state]]||null;}
+ usableClip(clip){const img=clip&&this.images.get(clip.texture);return Boolean(img&&img.naturalWidth>=clip.columns*clip.frameWidth&&img.naturalHeight>=clip.rows*clip.frameHeight);}
+ status(){
+  const painted=Object.fromEntries(FACTIONS.map(k=>[k,Object.keys(this.manifest?.actors?.[k]?.animations||{}).filter(s=>this.usableClip(this.getClip(k,s)))]));
+  return {ready:this.ready,loaded:this.images.size,actors:Object.fromEntries(FACTIONS.map(k=>[k,this.has(k)])),
+   animationReady:FACTIONS.every(k=>['idle','run','attack','cast','hit','down','revive','victory'].every(s=>painted[k].includes(s))),
+   painted,errors:this.errors.slice()};
+ }
  drawActor(g,key,actor,t,x,y,animator,zoom=1){
   if(!this.has(key))return false;
   const a=this.manifest.actors[key],isBoss=key==='boss',track=isBoss?animator.boss:animator.states.get(actor.id);
@@ -99,16 +128,25 @@ export class SkinRenderer{
   const direction=sampleDirection(key,state,age,t,
     combatClip&&track?.duration>0?track.duration:null);
   g.save();g.globalAlpha=.35;g.fillStyle='#060918';g.beginPath();g.ellipse(x,y,Math.min(55,h*.26),Math.min(12,h*.07),0,0,Math.PI*2);g.fill();g.restore();
-  const clip=a.animations?.[displayState]||a.animations?.[state];
+  if(!isBoss&&actor.hp>0&&(actor.leader||actor.guardian||actor.shield>0)){
+   g.save();g.translate(x,y);g.lineWidth=1.4;
+   if(actor.leader||actor.guardian){
+    g.strokeStyle=actor.leader?'#ffce73':'#a2e8ff';g.globalAlpha=.8;
+    g.beginPath();g.ellipse(0,0,h*.27,h*.065,0,0,Math.PI*2);g.stroke();
+   }
+   if(actor.shield>0){
+    g.strokeStyle='#a3e5ff';g.globalAlpha=.55;g.beginPath();
+    g.ellipse(0,-h*.47,h*.35,h*.52,0,0,Math.PI*2);g.stroke();
+   }
+   g.restore();
+  }
+  const clip=this.getClip(key,state);
   const atlas=clip?this.images.get(clip.texture):null;
-  const clipUsable=atlas&&atlas.naturalWidth>=clip.columns*clip.frameWidth&&
-   atlas.naturalHeight>=clip.rows*clip.frameHeight;
+  const clipUsable=this.usableClip(clip);
   if(clipUsable){
    // A true frame-painted animation must not receive a second mesh/rig rotation.
    // The frames already contain their own anticipation, contact and follow-through.
-   const frameIndex=Math.floor(Math.max(0,age)*clip.fps);
-   const frame=clip.loop?frameIndex%clip.frames:Math.min(clip.frames-1,frameIndex);
-   const sx=(frame%clip.columns)*clip.frameWidth,sy=Math.floor(frame/clip.columns)*clip.frameHeight;
+   const {sx,sy}=sampleAtlasFrame(clip,age,track?.duration);
    const hh=h*(clip.renderScale||1),ww=hh*clip.frameWidth/clip.frameHeight;
    g.save();g.translate(x,y);g.globalAlpha*=p.opacity;
    g.drawImage(atlas,sx,sy,clip.frameWidth,clip.frameHeight,

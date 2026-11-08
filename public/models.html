@@ -18,7 +18,7 @@ label{margin-left:auto;display:flex;gap:8px;align-items:center}input{accent-colo
 </style></head><body>
 <header><h1>TAM PHÁI TRẤN MA · 2D Animation Lab</h1><nav><a href="/animation-studio">Thiết kế animation</a> · <a href="/obs">Đấu trường OBS</a> · <a href="/admin">Điều khiển</a></nav></header>
 <main>
-<p>Đây là bộ 4 sprite anime RGBA được tích hợp vào OBS. Hiện game dùng ảnh WebP thật với biến dạng mesh để tăng chuyển động; khớp xương tách layer và frame atlas vẽ riêng vẫn đang phát triển trong Issue #5.</p>
+<p>Bốn nhân vật dùng sprite sheet vẽ riêng cho 8 trạng thái: đứng, chạy, đánh, tụ pháp, trúng đòn, gục, hồi sinh và chiến thắng. Đây là cùng bộ hình và renderer đang chạy trên màn OBS.</p>
 <canvas id="stage" width="960" height="580"></canvas>
 <div class="controls" id="controls" role="group" aria-label="Chọn hoạt ảnh">
 <button data-state="idle" aria-pressed="true">Đứng chờ</button>
@@ -45,7 +45,7 @@ import {SkinRenderer} from '/skin-renderer.js';
 const g=document.querySelector('#stage').getContext('2d'),models=new ModelAnimator(),skins=new SkinRenderer(),canvas=g.canvas;
 skins.load().then(info=>{
  const el=document.querySelector('#asset-status');
- el.textContent=info.ready?'Đã tải 4/4 ảnh RGBA · Mesh chuyển động theo hành động (atlas nhiều frame sẽ tự được dùng khi có asset)':
+ el.textContent=info.animationReady?'Đã tải 4/4 sprite sheet · 32 trạng thái · 128 tư thế vẽ riêng':info.ready?'Một số clip chưa nạp được · đang dùng ảnh dự phòng':
   'Lỗi texture: '+info.errors.join(' · ')+' — tạm dùng vector dự phòng';
  el.style.color=info.ready?'#a9f0c5':'#ffacbb';
 });
@@ -61,11 +61,13 @@ function select(s){
   p.actionDuration=s==='cast'?1.15:s==='revive'?1.1:s==='attack'?.7:.55;
   models.observe(p,selectedAt);
  }
- boss.bossState=s==='attack'?'impact':s==='cast'?'windup':s==='hit'?'stun':
-  s==='down'?'down':s==='victory'?'victory':'idle';
+ boss.bossState=s;
  boss.hp=s==='down'?0:65000;boss.result=s==='down'?'TRẤN MA THÀNH CÔNG':'';
  boss.bossActionSeq=(boss.bossActionSeq||0)+1;boss.bossActionDuration=.85;
  models.observeBoss(boss,selectedAt);
+ // The lab previews the selected authored clip, including run and revive.
+ // Live boss aliases (windup/impact/stun) are independently available in Studio.
+ models.boss={state:s,seq:boss.bossActionSeq,since:selectedAt,duration:s==='cast'?1.14:s==='revive'?1.1:.7};
  document.querySelectorAll('[data-state]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.state===s)));
  document.querySelector('#status').textContent='Hoạt ảnh đang phát: '+document.querySelector('[data-state="'+s+'"]').textContent+' · dùng cùng một renderer với /obs';
 }

@@ -8,7 +8,7 @@ const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d',{alpha:f
 const W=540,H=960,TAU=Math.PI*2;
 const BG=new Image();BG.src='/assets/arena-background.webp';
 const fx=new Effects(),audio=new SoundBank(),models=new ModelAnimator(),skins=new SkinRenderer();
-skins.load().then(status=>{if(!status.ready)console.warn('[Tam Phai] Missing character sprites:',status.errors)});
+skins.load().then(status=>{if(!status.animationReady)console.warn('[Tam Phai] Missing character animation:',status.errors,status.painted)});
 const COLORS={kiem:'#64bcff',huyen:'#cc76f9',linh:'#76f3bd',gold:'#ffdc8a',red:'#f15e86'};
 const CLASS={kiem:'KIẾM TÔNG',huyen:'HUYỀN MÔN',linh:'LINH DƯỢC'};
 const SKILLS=[['KIẾM KHÍ','1'],['LÔI KÍCH','2'],['PHONG ẤN','3'],['HỒI SINH','4'],['KIM LONG','5']];
@@ -55,7 +55,9 @@ function fighter(p,t){
 function namesAndLabels(s,t){
  const byFaction={kiem:0,huyen:0,linh:0};
  for(const p of s.players){byFaction[p.faction]++;
-  const a=anims.get(p.id)||{x:p.x,y:p.y,rx:p.x,ry:p.y};const k=clamp((performance.now()-a.received)/Math.max(80,a.interval||120)),x=lerp(a.x,a.rx,k),y=lerp(a.y,a.ry,k)-69*(p.scale||.82);
+  const a=anims.get(p.id)||{x:p.x,y:p.y,rx:p.x,ry:p.y};const k=clamp((performance.now()-a.received)/Math.max(80,a.interval||120)),x=lerp(a.x,a.rx,k);
+  const height=(skins.manifest?.actors?.[p.faction]?.renderHeight||92)*(p.scale||.82)/.82;
+  const y=lerp(a.y,a.ry,k)-height*1.12-7;
   ctx.save();ctx.font='bold 11px sans-serif';const label=(p.leader?'♛ ':'')+p.name.slice(0,12),width=Math.min(110,ctx.measureText(label).width+17);
   panel(x-width/2,y-14,width,19,p.leader?'#ffdd82':COLORS[p.faction],.88);
   text(label,x,y,11,p.leader?'#ffe6a3':'#f9f5ed','center','sans-serif');ctx.restore();

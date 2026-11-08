@@ -1,0 +1,135 @@
+{
+  "actor": "huyen",
+  "importerVersion": 2,
+  "webpQuality": 94,
+  "webpMethod": 4,
+  "sourceSha256": "9cb629035cc7f5e701a26d044a90cefe78fdfdf53b429fb211323ad6d105a50d",
+  "sourceSize": [
+    887,
+    1774
+  ],
+  "outputSize": [
+    1024,
+    2048
+  ],
+  "scale": 1.0785185185185187,
+  "groundAnchor": [
+    0.5,
+    0.97
+  ],
+  "provenance": "Original artwork generated from the project's existing character reference",
+  "animations": {
+    "idle": {
+      "texture": "/assets/characters/huyen-states-v2.webp",
+      "frames": 4,
+      "startFrame": 0,
+      "columns": 4,
+      "rows": 8,
+      "frameWidth": 256,
+      "frameHeight": 256,
+      "fps": 1.904762,
+      "loop": true,
+      "renderScale": 1.12
+    },
+    "run": {
+      "texture": "/assets/characters/huyen-states-v2.webp",
+      "frames": 4,
+      "startFrame": 4,
+      "columns": 4,
+      "rows": 8,
+      "frameWidth": 256,
+      "frameHeight": 256,
+      "fps": 7.142857,
+      "loop": true,
+      "renderScale": 1.12
+    },
+    "attack": {
+      "texture": "/assets/characters/huyen-states-v2.webp",
+      "frames": 4,
+      "startFrame": 8,
+      "columns": 4,
+      "rows": 8,
+      "frameWidth": 256,
+      "frameHeight": 256,
+      "fps": 7.272727,
+      "loop": false,
+      "renderScale": 1.12,
+      "syncToAction": true,
+      "frameTimes": [
+        0,
+        0.4363636363636363,
+        0.68,
+        0.88
+      ]
+    },
+    "cast": {
+      "texture": "/assets/characters/huyen-states-v2.webp",
+      "frames": 4,
+      "startFrame": 12,
+      "columns": 4,
+      "rows": 8,
+      "frameWidth": 256,
+      "frameHeight": 256,
+      "fps": 3.508772,
+      "loop": false,
+      "renderScale": 1.12,
+      "syncToAction": true,
+      "frameTimes": [
+        0,
+        0.2,
+        0.4363636363636363,
+        0.82
+      ]
+    },
+    "hit": {
+      "texture": "/assets/characters/huyen-states-v2.webp",
+      "frames": 4,
+      "startFrame": 16,
+      "columns": 4,
+      "rows": 8,
+      "frameWidth": 256,
+      "frameHeight": 256,
+      "fps": 8.333333,
+      "loop": false,
+      "renderScale": 1.12,
+      "syncToAction": true
+    },
+    "down": {
+      "texture": "/assets/characters/huyen-states-v2.webp",
+      "frames": 4,
+      "startFrame": 20,
+      "columns": 4,
+      "rows": 8,
+      "frameWidth": 256,
+      "frameHeight": 256,
+      "fps": 6.153846,
+      "loop": false,
+      "renderScale": 1.12
+    },
+    "revive": {
+      "texture": "/assets/characters/huyen-states-v2.webp",
+      "frames": 4,
+      "startFrame": 24,
+      "columns": 4,
+      "rows": 8,
+      "frameWidth": 256,
+      "frameHeight": 256,
+      "fps": 3.636364,
+      "loop": false,
+      "renderScale": 1.12,
+      "syncToAction": true
+    },
+    "victory": {
+      "texture": "/assets/characters/huyen-states-v2.webp",
+      "frames": 4,
+      "startFrame": 28,
+      "columns": 4,
+      "rows": 8,
+      "frameWidth": 256,
+      "frameHeight": 256,
+      "fps": 2.105263,
+      "loop": true,
+      "renderScale": 1.12
+    }
+  }
+}

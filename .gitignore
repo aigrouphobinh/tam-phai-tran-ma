@@ -9,3 +9,4 @@ save.json
 
 .runtime/
 dist/
+__pycache__/

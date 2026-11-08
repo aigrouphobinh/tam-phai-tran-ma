@@ -89,7 +89,7 @@ test('animation studio key pose sampling uses the active clip duration',async()=
  const nodes={'#pose':{textContent:''}};
  const sandbox={
   actor:'kiem',state:'attack',colors:{kiem:'#7fcfff'},LABELS:{attack:'Tấn công'},
-  sampleDirection,profileFor,$:k=>nodes[k]??{textContent:''},
+  sampleDirection,profileFor,activeDuration:()=>profileFor('kiem','attack').duration,$:k=>nodes[k]??{textContent:''},
   g:canvas,ready:false,lastPose:null,models:{},skins:{},player:{},boss:{}
  };
  const guide=runInNewContext(fn+';guide',sandbox);

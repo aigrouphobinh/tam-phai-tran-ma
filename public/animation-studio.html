@@ -64,13 +64,13 @@ main{max-width:1200px;padding:0 20px 30px;margin:auto}
  <section class="panel"><strong>Thông số hoạt ảnh đang phát</strong><pre id="pose"></pre></section>
  <section class="panel"><strong>Hướng dẫn kiểm duyệt</strong>
  <p class="mini">Kiểm tra mốc lấy đà, phát lực, tiếp xúc và thu chiêu. Căn chân ở cùng mốc mặt đất, không đổi khuôn mặt hoặc trang phục. Trong game, hành động được kích hoạt bởi state + actionSeq trên Node.js. Khi có atlas frame-by-frame được duyệt, renderer ưu tiên atlas thay cho biến dạng mesh.</p>
- <p class="mini"><b>Giới hạn:</b> Đây là bộ định hướng keyframe chạy trên các ảnh RGBA thật; chuyển động hiện chưa phải xương tách lớp hay 8 bộ sprite atlas vẽ tay.</p>
+ <p class="mini"><b>Giới hạn:</b> Mỗi nhân vật có 8 clip với 4 tư thế vẽ riêng trong một atlas WebP. Boss có thêm clip tụ lực, va chạm, choáng và chuyển giai đoạn. Bộ ảnh hiện có 4 tư thế mỗi hành động; chưa phải hoạt ảnh 12–24 hình mỗi hành động.</p>
  </section>
 </div>
 <p id="footer">540×960 OBS · 2D character assets · 4 actors · 8 main states · authored timing · synchronized combat events</p>
 </main>
 <script type="module">
-import {SkinRenderer} from '/skin-renderer.js';
+import {SkinRenderer,sampleAtlasFrame} from '/skin-renderer.js';
 import {ModelAnimator} from '/models2d.js';
 import {profileFor,sampleDirection} from '/animation-direction.js';
 
@@ -90,6 +90,8 @@ skins.load().then(r=>{ready=r.ready;$('#asset-status').textContent=r.ready?
  'Không tải được texture: '+r.errors.join('; ')+' · Dừng preview để không ngộ nhận là asset đã hoạt động';
  $('#asset-status').style.color=r.ready?'#b4f3cc':'#ffa9b7';
 });
+function activeDuration(){const clip=skins.getClip(actor,state);return clip?sampleAtlasFrame(clip,0,profileFor(actor,state).duration).duration:profileFor(actor,state).duration;}
+function grid(clip){const compact=clip.frames>4;return {cols:compact?4:2,dx:compact?86:170,dy:compact?109:148,w:compact?80:158,h:compact?100:138};}
 function available(){return actor==='boss'?STATES:STATES.slice(0,8)}
 function renderButtons(){
  $('#states').replaceChildren();
@@ -106,25 +108,25 @@ function updateCues(){
  }
 }
 function bindPose(t,age){
- const track=profileFor(actor,state);const duration=track.duration;
+ const duration=activeDuration();
  if(actor==='boss'){
   const bossState=state==='cast'?'windup':state==='attack'?'impact':state==='hit'?'stun':state;
   boss.bossState=bossState;boss.result='';boss.hp=60000;boss.cast=0;
-  models.boss={state:bossState,seq:1,since:(t-age)*1000,duration};
+  models.boss={state,seq:1,since:(t-age)*1000,duration};
  }else{
   player.faction=actor;player.state=state;player.hp=state==='down'?0:100;
   models.states.set(player.id,{state,seq:1,since:(t-age)*1000,duration,seed:.3});
  }
 }
 function guide(t,age,rect){
- const pose=sampleDirection(actor,state,age,t);lastPose=pose;
+ const duration=activeDuration(),pose=sampleDirection(actor,state,age,t,duration);lastPose=pose;
  const track=profileFor(actor,state),col=colors[actor];
  g.save();g.fillStyle='#101327';g.fillRect(0,0,960,560);
  const grad=g.createLinearGradient(0,0,0,530);grad.addColorStop(0,'#34294d');grad.addColorStop(1,'#10172c');g.fillStyle=grad;g.fillRect(0,0,960,560);
  g.strokeStyle='#a7898a44';for(let y=432;y<=520;y+=17){g.beginPath();g.moveTo(0,y);g.lineTo(960,y);g.stroke()}
  for(let x=40;x<960;x+=48){g.beginPath();g.moveTo(x,0);g.lineTo(x,560);g.strokeStyle='#aba3b012';g.stroke()}
  g.fillStyle=col;g.font='700 24px Georgia';g.fillText(actor==='boss'?'HỒNG LIÊN MA TƯỚNG':actor==='kiem'?'KIẾM TÔNG':actor==='huyen'?'HUYỀN MÔN':'LINH DƯỢC',36,46);
- g.font='600 16px system-ui';g.fillStyle='#fbecd5';g.fillText(LABELS[state]+' · '+(pose.progress*100).toFixed(0)+'% · '+track.duration.toFixed(2)+'s',36,74);
+ g.font='600 16px system-ui';g.fillStyle='#fbecd5';g.fillText(LABELS[state]+' · '+(pose.progress*100).toFixed(0)+'% · '+duration.toFixed(2)+'s',36,74);
  // The original approved sprite is rendered with character-specific authored timeline.
  if(ready){
   if(actor==='boss')skins.drawActor(g,'boss',boss,t,314,471,models,1.22);
@@ -134,26 +136,27 @@ function guide(t,age,rect){
  }
  g.fillStyle='#ffffff12';g.fillRect(547,99,373,402);
  g.strokeStyle=col;g.lineWidth=1.2;g.strokeRect(547,99,373,402);
- const clip=ready?skins.manifest?.actors?.[actor]?.animations?.[state]:null;
+ const clip=ready?skins.getClip(actor,state):null;
  const atlas=clip?skins.images.get(clip.texture):null;
  const valid=Boolean(atlas&&atlas.naturalWidth>=clip.columns*clip.frameWidth&&
   atlas.naturalHeight>=clip.rows*clip.frameHeight);
  g.font='bold 17px system-ui';g.fillStyle='#f7dca2';
  g.fillText(valid?'SPRITE FRAMES · '+clip.frames+' HÌNH RIÊNG':'KEY POSES / TIMELINE',566,126);
  if(valid){
-  const current=Math.min(clip.frames-1,Math.floor(age*clip.fps));
+  const current=sampleAtlasFrame(clip,age,duration).frame,layout=grid(clip);
   for(let i=0;i<clip.frames;i++){
-   const x=562+(i%4)*86,y=149+Math.floor(i/4)*109;
-   g.fillStyle=i===current?'#56477a':'#25243f';g.fillRect(x,y,80,100);
+   const x=562+(i%layout.cols)*layout.dx,y=149+Math.floor(i/layout.cols)*layout.dy,w=layout.w,h=layout.h;
+   g.fillStyle=i===current?'#56477a':'#25243f';g.fillRect(x,y,w,h);
    g.lineWidth=i===current?2:1;g.strokeStyle=i===current?'#ffe39a':'#756482';
-   g.strokeRect(x,y,80,100);
-   const sx=(i%clip.columns)*clip.frameWidth,sy=Math.floor(i/clip.columns)*clip.frameHeight;
-   g.drawImage(atlas,sx,sy,clip.frameWidth,clip.frameHeight,x+4,y+2,72,76);
+   g.strokeRect(x,y,w,h);
+   const source=(clip.startFrame||0)+i,sx=(source%clip.columns)*clip.frameWidth,sy=Math.floor(source/clip.columns)*clip.frameHeight;
+   const scale=Math.min((w-8)/clip.frameWidth,(h-24)/clip.frameHeight),iw=clip.frameWidth*scale,ih=clip.frameHeight*scale;
+   g.drawImage(atlas,sx,sy,clip.frameWidth,clip.frameHeight,x+(w-iw)/2,y+2,iw,ih);
    g.fillStyle=i===current?'#ffe4a4':'#dfd8e7';g.font='bold 12px system-ui';
-   g.fillText(String(i+1).padStart(2,'0'),x+30,y+94);
+   g.fillText(String(i+1).padStart(2,'0'),x+w/2-8,y+h-6);
   }
   g.fillStyle='#d9cbeb';g.font='12px monospace';
-  g.fillText('FRAME '+String(current+1).padStart(2,'0')+'/'+clip.frames+' • '+clip.fps+' FPS',570,493);
+  g.fillText('FRAME '+String(current+1).padStart(2,'0')+'/'+clip.frames+' • '+duration.toFixed(2)+'s',570,493);
  }else{
   const stages=[0,.25,.5,.75,1];
   for(let i=0;i<stages.length;i++){
@@ -169,10 +172,10 @@ function guide(t,age,rect){
   }
  }
  g.fillStyle='#c9bacb';g.font='12px system-ui';
- g.fillText(valid?'Đang phát nhiều frame WebP RGBA · Kiếm Tông: bản art thử nghiệm':
+ g.fillText(valid?'Đang phát sprite atlas RGBA · tư thế vẽ riêng, chung kích thước và mốc chân':
   'Đang dùng ảnh RGBA đơn + mesh · Chưa có nhiều frame cho state này',23,538);
  g.restore();
- $('#pose').textContent=JSON.stringify({actor,state,duration:track.duration,loop:track.loop,
+ $('#pose').textContent=JSON.stringify({actor,state,duration,loop:clip?.loop??track.loop,frame:clip?sampleAtlasFrame(clip,age,duration).frame+1:null,
  progress:Number(pose.progress.toFixed(3)),x:Number(pose.x.toFixed(2)),y:Number(pose.y.toFixed(2)),
  tilt:Number(pose.tilt.toFixed(3)),upper:Number(pose.upper.toFixed(2)),
  mid:Number(pose.mid.toFixed(2)),lower:Number(pose.lower.toFixed(2)),
@@ -181,9 +184,9 @@ function guide(t,age,rect){
 function frame(now){
  const delta=Math.min(.1,(now-previous)/1000);previous=now;
  const track=profileFor(actor,state);
- if(playing){progress+=delta*speed/track.duration;if(track.loop)progress%=1;else if(progress>=1){progress=1;playing=false;$('#play').textContent='▶ Phát';$('#play').classList.remove('active')}}
+ if(playing){progress+=delta*speed/activeDuration();if(skins.getClip(actor,state)?.loop??track.loop)progress%=1;else if(progress>=1){progress=1;playing=false;$('#play').textContent='▶ Phát';$('#play').classList.remove('active')}}
  $('#scrub').value=Math.round(progress*1000);
- const age=progress*track.duration,t=now/1000;
+ const age=progress*activeDuration(),t=now/1000;
  $('#timestamps').textContent=age.toFixed(2)+'s';
  bindPose(t,age);guide(t,age);
  requestAnimationFrame(frame)
@@ -197,21 +200,21 @@ $('#scrub').oninput=e=>{progress=Number(e.target.value)/1000;playing=false;
  $('#play').textContent='▶ Phát';$('#play').classList.remove('active')};
 // Clicking a real frame preview seeks to that frame; no fake pose list.
 can.addEventListener('pointerdown',event=>{
- const clip=skins.manifest?.actors?.[actor]?.animations?.[state];
+ const clip=skins.getClip(actor,state);
  if(!clip||!skins.images.has(clip.texture))return;
  const box=can.getBoundingClientRect(),x=(event.clientX-box.left)*can.width/box.width,
   y=(event.clientY-box.top)*can.height/box.height;
- const col=Math.floor((x-562)/86),row=Math.floor((y-149)/109);
- if(x<562||y<149||col<0||col>3||row<0||row>2)return;
- const frame=row*4+col;if(frame>=clip.frames)return;
- progress=Math.min(1,((frame+.001)/clip.fps)/profileFor(actor,state).duration);
+ const layout=grid(clip),col=Math.floor((x-562)/layout.dx),row=Math.floor((y-149)/layout.dy);
+ if(x<562||y<149||col<0||col>=layout.cols||row<0||x-562-col*layout.dx>layout.w||y-149-row*layout.dy>layout.h)return;
+ const frame=row*layout.cols+col;if(frame>=clip.frames)return;
+ progress=Math.min(.999999,(clip.frameTimes?.[frame]??frame/clip.frames)+.000001);
  playing=false;$('#play').textContent='▶ Phát';$('#play').classList.remove('active');
 });
 $('#shot').onclick=()=>{const a=document.createElement('a');
  a.download='tam-phai-'+actor+'-'+state+'-'+Math.round(progress*100)+'pct.png';a.href=can.toDataURL('image/png');a.click()};
 $('#export').onclick=()=>{
- const pack={name:'Tam Phai Tran Ma animation direction',actor,state,profile:profileFor(actor,state),
- note:'Motion direction metadata only; not a rendered sprite strip or a complete skeletal rig'};
+ const pack={name:'Tam Phai Tran Ma animation clip',actor,state,profile:profileFor(actor,state),clip:skins.getClip(actor,state),
+ note:'Atlas clip metadata; referenced WebP contains the authored frames'};
  const blob=new Blob([JSON.stringify(pack,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob);
  const a=document.createElement('a');a.href=url;a.download=actor+'-'+state+'-direction.json';a.click();
  setTimeout(()=>URL.revokeObjectURL(url),5000)

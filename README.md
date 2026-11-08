@@ -106,8 +106,19 @@ Xem [docs/RELEASE_CHECK.md](docs/RELEASE_CHECK.md) để phân biệt phần đ�
 
 ## Mã nguồn và asset
 
-Giữ renderer Canvas hiện có để tái sử dụng animation/VFX/SFX của dự án; không chuyển engine chỉ để đổi tên công nghệ. Asset gồm bốn ảnh RGBA, atlas Kiếm Tông 12 frame, nền đấu trường và 15 MP3. Phần còn lại dùng chuyển động mesh/cutout; **chưa phải bộ Spine nhiều lớp hoặc 8 clip vẽ riêng cho cả 4 nhân vật**. Không dùng ảnh infographic làm bằng chứng tính năng đã chạy.
+Giữ renderer Canvas hiện có để tái sử dụng animation/VFX/SFX của dự án; không chuyển engine chỉ để đổi tên công nghệ. Asset gồm bốn sprite sheet WebP, mỗi sheet có 8 trạng thái × 4 tư thế vẽ riêng (128 tư thế), bốn ảnh RGBA dự phòng, nền đấu trường và 15 MP3. Boss có thêm ánh xạ tụ lực/va chạm/choáng/chuyển giai đoạn. Mỗi hành động hiện có 4 tư thế; đây là sprite animation, không phải rig Spine nhiều lớp. Atlas Kiếm Tông 12 frame cũ được giữ lại trong mã nguồn để đối chiếu. Không dùng ảnh infographic làm bằng chứng tính năng đã chạy.
 
 `input.mjs` chuẩn hóa sự kiện; `bridge.mjs` giải mã; `engine.mjs` tính chiến đấu; `combat-geometry.mjs` xác định vùng trúng; `persistence.mjs` lưu trận; `server.mjs` phục vụ local. Frontend nằm trong `public/`, tiện ích Chrome trong `extension/`.
 
 `THIRD_PARTY_LICENSES/` giữ giấy phép AGPL-3.0 của `tiktok-live-connector@2.5.0`. Mã nguồn thư viện: https://github.com/zerodytrash/TikTok-Live-Connector/tree/v2.5.0 . Asset gốc được tạo theo yêu cầu dự án; nguồn và mức hoàn thiện ghi ở `public/assets/characters/manifest.json`.
+
+## Hoạt ảnh sprite V2 · 09/11/2026
+
+- `/models`: xem đồng thời tám trạng thái của cả bốn nhân vật.
+- `/animation-studio`: xem từng tư thế, kéo timeline, bấm thumbnail để chọn đúng frame, xuất clip JSON.
+- `/obs`: dùng cùng atlas, giữ ground anchor, kích thước theo bonus, tên phía trên đầu, vòng thủ lĩnh/hộ pháp và khiên.
+- Tấn công cơ bản khớp frame tiếp xúc với windup 240 ms của server. Boss giữ tư thế tụ lực tới sự kiện va chạm.
+
+Nguồn art, brief và cách nhập lại sheet: [docs/SPRITE_ART_V2.md](docs/SPRITE_ART_V2.md).
+Ảnh chụp và kết quả trình duyệt: [docs/qa/sprite-v2.json](docs/qa/sprite-v2.json).
+Kiểm chứng TikTok LIVE thật và FPS/âm thanh trên Windows OBS vẫn cần thực hiện trên máy phát.

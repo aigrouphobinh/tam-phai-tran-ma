@@ -12,7 +12,7 @@ Issue: https://github.com/aigrouphobinh/tam-phai-tran-ma/issues/5
 - Server-authoritative timestamps continue to control root motion, scale, fade, impact and death; no gameplay logic in the renderer.
 - npm test checks real WebP files, manifest security, bitmap rendering and failure fallback.
 
-**Important:** these four current sprites are FLAT RGBA CUTOUTS. They are concept artwork, not independent animated limbs. P1-P3 must be finished before describing this as a production bone rig.
+**Sprite V2 update (2026-11-09):** the four base cutouts are now fallbacks. Each actor has a 32-pose shared atlas with eight distinct state rows. Boss windup/impact/stun/phase use dedicated clip timing; live, lab and studio share the atlas sampler. Source briefs and import metadata are documented in `SPRITE_ART_V2.md`. This is frame animation, not a layered bone rig; P1 bone work and Windows OBS acceptance remain open.
 
 ## P1 — layered art and atlas
 

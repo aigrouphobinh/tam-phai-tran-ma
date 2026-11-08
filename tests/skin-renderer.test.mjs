@@ -18,7 +18,7 @@ function fakeCanvas(){
 }
 class TestImage{
  naturalWidth=200;naturalHeight=330;
- set src(value){this.url=value;queueMicrotask(()=>this.onload())}
+ set src(value){this.url=value;if(value.includes('-states-v2.')){this.naturalWidth=1024;this.naturalHeight=2048;}queueMicrotask(()=>this.onload())}
 }
 function createSkin(actors=manifest.actors){
  const mock=new SkinRenderer({
@@ -51,7 +51,8 @@ test('manifest refuses missing assets, invalid anchors, unsafe sources, non-fini
 test('live and model lab share the same skin renderer and draw actual bitmaps',async()=>{
  const skin=createSkin(),loaded=await skin.load();
  assert.equal(loaded.ready,true);
- assert.equal(loaded.loaded,5);
+ assert.equal(loaded.loaded,8);
+ assert.equal(loaded.animationReady,true);
  const m=new ModelAnimator(),{g,trace}=fakeCanvas();
  for(const [i,k] of names.entries()){
   if(k==='boss'){
@@ -64,7 +65,7 @@ test('live and model lab share the same skin renderer and draw actual bitmaps',a
    assert.equal(skin.drawPlayer(g,p,1.2,100+i*60,400,m,1),true);
   }
  }
- assert.ok(trace.images>=56,'each actor must render multiple real-texture mesh strips, not one rotating poster');
+ assert.equal(trace.images,4,'each actor crops its authored atlas once, without extra mesh deformation');
 });
 test('missing texture safely falls back without lying that rig is production ready',async()=>{
  class BrokenImage{set src(x){queueMicrotask(()=>this.onerror(Error('no file')))}}
@@ -89,7 +90,7 @@ test('default browser fetch retains Window receiver and loads all four real spri
   const skin=new SkinRenderer({ImageCtor:TestImage});
   const status=await skin.load();
   assert.equal(status.ready,true,JSON.stringify(status.errors));
-  assert.equal(status.loaded,5);
+  assert.equal(status.loaded,8);
   assert.deepEqual(Object.values(status.actors),[true,true,true,true]);
   assert.equal(called.length,1);
   assert.equal(called[0].url,'/assets/characters/manifest.json');

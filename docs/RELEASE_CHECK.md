@@ -1,4 +1,4 @@
-# Ghi nhận kiểm chứng · 08/11/2026
+# Ghi nhận kiểm chứng · 09/11/2026
 
 | Hạng mục | Kết quả | Bằng chứng |
 | --- | --- | --- |
@@ -10,12 +10,19 @@
 | Giải mã frame protobuf/gzip | Đã kiểm thử bằng fixture theo schema thư viện | `bridge.mjs`, `tests/live-pipeline.test.mjs` |
 | HTTP mã ghép nối, lọc kênh | Đã kiểm thử | `tests/live-pipeline.test.mjs` |
 | Lưu/khôi phục trận; quà chờ; roster qua trận | Đã kiểm thử | `persistence.mjs`, `tests/live-pipeline.test.mjs` |
-| Renderer 2D/nền/âm thanh | Asset đã có; chọn âm thanh đã kiểm thử | `public/assets/`, các bài thử renderer |
+| Renderer 2D/nền/âm thanh | Đã kiểm tra trình duyệt, giải mã âm thanh local không lỗi | `docs/qa/sprite-v2.json`, `public/assets/` |
 | Chrome bắt sự kiện từ TikTok LIVE thực | Chưa nghiệm thu | Cần mở tab kênh đang LIVE với tiện ích được cài |
 | OBS audio meter và phát vào LIVE Studio | Chưa nghiệm thu trên máy chủ kênh | Cần OBS/LIVE Studio trên máy phát |
 | FPS trên máy Windows hiện có | Chưa đo | Chỉ số trình duyệt cloud không đại diện máy phát |
-| 8 clip độc lập × 4 nhân vật | Chưa có đủ asset | Hiện Kiếm Tông có atlas attack 12 frame; còn lại mesh/cutout |
+| 8 clip × 4 nhân vật | Đã có 128 tư thế, 4 tư thế/clip | 4 atlas `*-states-v2.webp`, `docs/SPRITE_ART_V2.md` |
+| Studio chọn frame và clip boss | Đã kiểm tra trong trình duyệt | `docs/qa/sprite-v2.json`, `tests/real-attack-frames.test.mjs` |
 
 Không gán % hoàn thành hoặc nhãn Production chỉ từ số test đạt.
 
-Kiểm thử tự động hiện tại: **59 đạt, 0 lỗi**. Trình duyệt: xác nhận gọi Kim Long, kỹ năng Huyền Môn và Linh Dược, mở Web Audio không báo thiếu file, đội hình/chiến công, bố cục 390 px không tràn ngang. Renderer tải đủ 5 tài nguyên nhân vật (4 texture + atlas). Trình duyệt cloud bị giảm nhịp khung hình; không xác nhận 60 FPS hoặc hiệu năng OBS từ phép thử này.
+Kiểm thử tự động hiện tại: **62 đạt, 0 lỗi**; `npm run check` xác nhận 25 tài nguyên runtime và 36 clip, bao gồm schema/kích thước/vùng crop. `npm run build` tạo bản sân luyện static thành công.
+
+Trình duyệt Chromium Linux: 21 phép kiểm tra đạt, không có page error hoặc response HTTP lỗi. Đã kiểm tra tám trạng thái của cả bốn nhân vật, 32 clip trong Studio và các clip boss, scrubbing/chọn thumbnail, bắt đầu sân luyện, thêm đội ba môn phái, kỹ năng bậc 5 của cả ba phái gây thay đổi HP, giải mã bộ âm thanh local, canvas OBS 540×960 và bố cục điều khiển 390 px không tràn ngang. Renderer nạp 8 bitmap nhân vật (4 texture dự phòng + 4 atlas).
+
+Ảnh và log: [docs/qa](qa/), [báo cáo JSON](qa/sprite-v2.json). Các ảnh chụp phản ánh đúng canvas trong trình duyệt; khi chụp màn OBS, trận được tạm dừng để giữ nguyên frame. Không dùng kết quả trình duyệt cloud/software renderer làm bằng chứng FPS hoặc âm thanh ra OBS của máy Windows.
+
+Bốn tư thế/clip đã có và được kiểm tra; tăng lên 6–12 tư thế, rig tách layer, duyệt art ở đội hình 40 người và nghiệm thu phiên LIVE/OBS thật vẫn là các hạng mục mở. Không đóng issue #2/#4/#5 chỉ từ các kiểm tra local này.

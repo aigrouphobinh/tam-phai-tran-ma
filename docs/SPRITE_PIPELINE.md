@@ -5,9 +5,9 @@ Tracking: https://github.com/aigrouphobinh/tam-phai-tran-ma/issues/5
 
 ## Trạng thái hiện tại
 
-**Đã hoạt động trên main:** bốn RGBA WebP thật (Kiếm Tông, Huyền Môn, Linh Dược, Hồng Liên) kết hợp public/skin-renderer.js và public/sprite-mesh.js. Sprite mesh tạo biến dạng nhẹ trên texture gốc cho chạy, thi triển, trúng đòn, gục và hồi sinh; đồng bộ actionSeq/actionAt/actionDuration với Node.js.
+**Đã hoạt động:** bốn sheet WebP RGBA, tám trạng thái × bốn tư thế độc lập mỗi nhân vật. `SkinRenderer` phát crop atlas theo actionSeq/actionAt/actionDuration. Bốn cutout gốc và mesh được giữ làm dự phòng khi clip không nạp được.
 
-**Đã hỗ trợ code, chờ art nhiều frame:** config animations trong manifest.json dùng atlas WebP theo từng state. Clip atlas ưu tiên trước các layer rig, rồi mesh flat. Không cần sửa /obs, /models hoặc RaidEngine khi thay art.
+**Sheet chung:** mỗi clip khai báo `startFrame` vào atlas 4 cột × 8 hàng. `frameTimes` xác định mốc chuyển tư thế; `syncToAction` co thời gian theo server. Studio và OBS cùng dùng `sampleAtlasFrame`, kể cả khi bấm thumbnail. Xem `SPRITE_ART_V2.md` để nhập sheet đã có.
 
 **Đúng phạm vi:** các sprite hiện tại CHƯA chia tay/chân/tóc thành texture độc lập. Mesh deformation KHÔNG phải full skeletal rig production.
 
@@ -52,7 +52,8 @@ Sau khi chạy, thêm cấu hình vào actors.kiem:
 - [x] Mesh motion cho art RGBA từ server action state
 - [x] Hỗ trợ frame atlas + FPS/loop theo từng clip trên renderer
 - [x] Có tool chuẩn hóa full strip, giữ chân chung và cùng tỷ lệ
-- [ ] Hình frame-by-frame thực sự được vẽ và duyệt cho đủ 8 state mỗi model
+- [x] Có các tư thế riêng cho đủ 8 state mỗi model (4 tư thế/state; đã kiểm tra trong trình duyệt)
+- [ ] Mở rộng các clip đánh/chạy lên 6–12 tư thế và duyệt ở đội hình 40 người
 - [ ] Rig bone/layer độc lập cho tay, chân, áo, tóc, vũ khí
 - [ ] QA screenshot và benchmark FPS thực trên máy Windows OBS
 

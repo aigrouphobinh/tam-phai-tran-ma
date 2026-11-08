@@ -45,7 +45,7 @@ test('timeline atlas draws correct 9-argument source rectangle at 200ms',async()
  });
  const loaded=await skins.load();
  assert.equal(loaded.ready,true);
- assert.equal(loaded.loaded,5);
+ assert.equal(loaded.loaded,8);
  const animator=new ModelAnimator();
  const p={id:'k',state:'attack',actionSeq:3,actionAt:0,
   actionDuration:.7,scale:.82,faction:'kiem',hp:100};

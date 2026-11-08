@@ -1,0 +1,30 @@
+{
+  "testedAt": "2026-11-08T23:05:31.249Z",
+  "browser": "153.0.8010.0",
+  "environment": "Headless Linux Chromium, software rendering; not a Windows OBS performance test",
+  "checks": [
+    "Model Lab: idle on all 4 actors",
+    "Model Lab: run on all 4 actors",
+    "Model Lab: attack on all 4 actors",
+    "Model Lab: cast on all 4 actors",
+    "Model Lab: hit on all 4 actors",
+    "Model Lab: down on all 4 actors",
+    "Model Lab: revive on all 4 actors",
+    "Model Lab: victory on all 4 actors",
+    "Studio: all 8 clips and scrub for kiem",
+    "Studio: all 8 clips and scrub for huyen",
+    "Studio: all 8 clips and scrub for linh",
+    "Studio: all 8 clips and scrub for boss",
+    "Studio: Boss tụ lực",
+    "Studio: Boss quét liềm",
+    "Studio: Boss choáng",
+    "Studio: Chuyển phase",
+    "Studio: clicking thumbnail 4 seeks the actual live frame 4",
+    "Control room: start practice, add team, cast tier 5 from all three schools with real HP changes",
+    "Audio: browser decoded local sound bank without missing-file status",
+    "OBS: 540x960 canvas with server state and the new sprite sheets",
+    "Mobile control room: 390px viewport, no horizontal overflow"
+  ],
+  "consoleErrors": [],
+  "failedResponses": []
+}
