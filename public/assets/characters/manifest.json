@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": "four-actors-eight-states-v2",
+  "revision": "boss-cycle-four-forms-v1",
   "license": "User-requested original AI-generated concept assets",
   "actors": {
     "kiem": {
@@ -379,18 +379,18 @@
       }
     },
     "boss": {
-      "texture": "/assets/characters/boss.webp",
+      "texture": "/assets/characters/boss-red-base.webp",
       "anchor": [
-        0.5,
+        0.500545,
         0.97
       ],
       "renderHeight": 305,
-      "sourceArt": "Original AI-generated 32-pose sheet from existing boss character; see docs/SPRITE_ART_V2.md",
-      "quality": "8 painted animation states, 4 original poses each; shared atlas, no mesh in normal playback",
+      "sourceArt": "Original generated fully clothed boss form; see docs/BOSS_LOOP.md",
+      "quality": "Opaque permanent battle uniform + detachable decorative accessories",
       "layers": [],
       "animations": {
         "idle": {
-          "texture": "/assets/characters/boss-states-v2.webp",
+          "texture": "/assets/characters/boss-red-states-v2.webp",
           "frames": 4,
           "startFrame": 0,
           "columns": 4,
@@ -402,7 +402,7 @@
           "renderScale": 1.12
         },
         "run": {
-          "texture": "/assets/characters/boss-states-v2.webp",
+          "texture": "/assets/characters/boss-red-states-v2.webp",
           "frames": 4,
           "startFrame": 4,
           "columns": 4,
@@ -414,7 +414,7 @@
           "renderScale": 1.12
         },
         "attack": {
-          "texture": "/assets/characters/boss-states-v2.webp",
+          "texture": "/assets/characters/boss-red-states-v2.webp",
           "frames": 4,
           "startFrame": 8,
           "columns": 4,
@@ -433,7 +433,7 @@
           ]
         },
         "cast": {
-          "texture": "/assets/characters/boss-states-v2.webp",
+          "texture": "/assets/characters/boss-red-states-v2.webp",
           "frames": 4,
           "startFrame": 12,
           "columns": 4,
@@ -452,7 +452,7 @@
           ]
         },
         "hit": {
-          "texture": "/assets/characters/boss-states-v2.webp",
+          "texture": "/assets/characters/boss-red-states-v2.webp",
           "frames": 4,
           "startFrame": 16,
           "columns": 4,
@@ -465,7 +465,7 @@
           "syncToAction": true
         },
         "down": {
-          "texture": "/assets/characters/boss-states-v2.webp",
+          "texture": "/assets/characters/boss-red-states-v2.webp",
           "frames": 4,
           "startFrame": 20,
           "columns": 4,
@@ -477,7 +477,7 @@
           "renderScale": 1.12
         },
         "revive": {
-          "texture": "/assets/characters/boss-states-v2.webp",
+          "texture": "/assets/characters/boss-red-states-v2.webp",
           "frames": 4,
           "startFrame": 24,
           "columns": 4,
@@ -490,7 +490,7 @@
           "syncToAction": true
         },
         "victory": {
-          "texture": "/assets/characters/boss-states-v2.webp",
+          "texture": "/assets/characters/boss-red-states-v2.webp",
           "frames": 4,
           "startFrame": 28,
           "columns": 4,
@@ -502,7 +502,7 @@
           "renderScale": 1.12
         },
         "windup": {
-          "texture": "/assets/characters/boss-states-v2.webp",
+          "texture": "/assets/characters/boss-red-states-v2.webp",
           "frames": 2,
           "startFrame": 12,
           "columns": 4,
@@ -519,7 +519,7 @@
           ]
         },
         "impact": {
-          "texture": "/assets/characters/boss-states-v2.webp",
+          "texture": "/assets/characters/boss-red-states-v2.webp",
           "frames": 2,
           "startFrame": 10,
           "columns": 4,
@@ -536,7 +536,7 @@
           ]
         },
         "stun": {
-          "texture": "/assets/characters/boss-states-v2.webp",
+          "texture": "/assets/characters/boss-red-states-v2.webp",
           "frames": 4,
           "startFrame": 16,
           "columns": 4,
@@ -549,7 +549,7 @@
           "syncToAction": true
         },
         "phase": {
-          "texture": "/assets/characters/boss-states-v2.webp",
+          "texture": "/assets/characters/boss-red-states-v2.webp",
           "frames": 4,
           "startFrame": 12,
           "columns": 4,
@@ -567,7 +567,788 @@
             0.82
           ]
         }
-      }
+      },
+      "baseCoverage": "opaque-high-neck-tunic-leggings-boots"
     }
+  },
+  "bossForms": {
+    "honglien": {
+      "texture": "/assets/characters/boss-red-base.webp",
+      "anchor": [
+        0.500545,
+        0.97
+      ],
+      "renderHeight": 305,
+      "sourceArt": "Original generated fully clothed boss form; see docs/BOSS_LOOP.md",
+      "quality": "Opaque permanent battle uniform + detachable decorative accessories",
+      "layers": [],
+      "animations": {
+        "idle": {
+          "texture": "/assets/characters/boss-red-states-v2.webp",
+          "frames": 4,
+          "startFrame": 0,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 1.904762,
+          "loop": true,
+          "renderScale": 1.12
+        },
+        "run": {
+          "texture": "/assets/characters/boss-red-states-v2.webp",
+          "frames": 4,
+          "startFrame": 4,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 7.142857,
+          "loop": true,
+          "renderScale": 1.12
+        },
+        "attack": {
+          "texture": "/assets/characters/boss-red-states-v2.webp",
+          "frames": 4,
+          "startFrame": 8,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 7.272727,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true,
+          "frameTimes": [
+            0,
+            0.18,
+            0.44,
+            0.82
+          ]
+        },
+        "cast": {
+          "texture": "/assets/characters/boss-red-states-v2.webp",
+          "frames": 4,
+          "startFrame": 12,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 3.508772,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true,
+          "frameTimes": [
+            0,
+            0.2,
+            0.4363636363636363,
+            0.82
+          ]
+        },
+        "hit": {
+          "texture": "/assets/characters/boss-red-states-v2.webp",
+          "frames": 4,
+          "startFrame": 16,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 8.333333,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true
+        },
+        "down": {
+          "texture": "/assets/characters/boss-red-states-v2.webp",
+          "frames": 4,
+          "startFrame": 20,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 6.153846,
+          "loop": false,
+          "renderScale": 1.12
+        },
+        "revive": {
+          "texture": "/assets/characters/boss-red-states-v2.webp",
+          "frames": 4,
+          "startFrame": 24,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 3.636364,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true
+        },
+        "victory": {
+          "texture": "/assets/characters/boss-red-states-v2.webp",
+          "frames": 4,
+          "startFrame": 28,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 2.105263,
+          "loop": true,
+          "renderScale": 1.12
+        },
+        "windup": {
+          "texture": "/assets/characters/boss-red-states-v2.webp",
+          "frames": 2,
+          "startFrame": 12,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 0.9090909090909091,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": false,
+          "frameTimes": [
+            0,
+            0.35
+          ]
+        },
+        "impact": {
+          "texture": "/assets/characters/boss-red-states-v2.webp",
+          "frames": 2,
+          "startFrame": 10,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 3.6363636363636362,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true,
+          "frameTimes": [
+            0,
+            0.58
+          ]
+        },
+        "stun": {
+          "texture": "/assets/characters/boss-red-states-v2.webp",
+          "frames": 4,
+          "startFrame": 16,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 8.333333,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true
+        },
+        "phase": {
+          "texture": "/assets/characters/boss-red-states-v2.webp",
+          "frames": 4,
+          "startFrame": 12,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 3.508772,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true,
+          "frameTimes": [
+            0,
+            0.2,
+            0.4363636363636363,
+            0.82
+          ]
+        }
+      },
+      "baseCoverage": "opaque-high-neck-tunic-leggings-boots"
+    },
+    "bangnguyet": {
+      "texture": "/assets/characters/boss-ice-base.webp",
+      "anchor": [
+        0.596796,
+        0.97
+      ],
+      "renderHeight": 305,
+      "sourceArt": "Original generated fully clothed boss form; see docs/BOSS_LOOP.md",
+      "quality": "Opaque permanent battle uniform + detachable decorative accessories",
+      "layers": [],
+      "animations": {
+        "idle": {
+          "texture": "/assets/characters/boss-ice-states-v2.webp",
+          "frames": 4,
+          "startFrame": 0,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 1.904762,
+          "loop": true,
+          "renderScale": 1.12
+        },
+        "run": {
+          "texture": "/assets/characters/boss-ice-states-v2.webp",
+          "frames": 4,
+          "startFrame": 4,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 7.142857,
+          "loop": true,
+          "renderScale": 1.12
+        },
+        "attack": {
+          "texture": "/assets/characters/boss-ice-states-v2.webp",
+          "frames": 4,
+          "startFrame": 8,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 7.272727,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true,
+          "frameTimes": [
+            0,
+            0.18,
+            0.44,
+            0.82
+          ]
+        },
+        "cast": {
+          "texture": "/assets/characters/boss-ice-states-v2.webp",
+          "frames": 4,
+          "startFrame": 12,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 3.508772,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true,
+          "frameTimes": [
+            0,
+            0.2,
+            0.4363636363636363,
+            0.82
+          ]
+        },
+        "hit": {
+          "texture": "/assets/characters/boss-ice-states-v2.webp",
+          "frames": 4,
+          "startFrame": 16,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 8.333333,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true
+        },
+        "down": {
+          "texture": "/assets/characters/boss-ice-states-v2.webp",
+          "frames": 4,
+          "startFrame": 20,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 6.153846,
+          "loop": false,
+          "renderScale": 1.12
+        },
+        "revive": {
+          "texture": "/assets/characters/boss-ice-states-v2.webp",
+          "frames": 4,
+          "startFrame": 24,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 3.636364,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true
+        },
+        "victory": {
+          "texture": "/assets/characters/boss-ice-states-v2.webp",
+          "frames": 4,
+          "startFrame": 28,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 2.105263,
+          "loop": true,
+          "renderScale": 1.12
+        },
+        "windup": {
+          "texture": "/assets/characters/boss-ice-states-v2.webp",
+          "frames": 2,
+          "startFrame": 12,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 0.9090909090909091,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": false,
+          "frameTimes": [
+            0,
+            0.35
+          ]
+        },
+        "impact": {
+          "texture": "/assets/characters/boss-ice-states-v2.webp",
+          "frames": 2,
+          "startFrame": 10,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 3.6363636363636362,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true,
+          "frameTimes": [
+            0,
+            0.58
+          ]
+        },
+        "stun": {
+          "texture": "/assets/characters/boss-ice-states-v2.webp",
+          "frames": 4,
+          "startFrame": 16,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 8.333333,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true
+        },
+        "phase": {
+          "texture": "/assets/characters/boss-ice-states-v2.webp",
+          "frames": 4,
+          "startFrame": 12,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 3.508772,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true,
+          "frameTimes": [
+            0,
+            0.2,
+            0.4363636363636363,
+            0.82
+          ]
+        }
+      },
+      "baseCoverage": "opaque-high-neck-tunic-leggings-boots"
+    },
+    "loianh": {
+      "texture": "/assets/characters/boss-storm-base.webp",
+      "anchor": [
+        0.573955,
+        0.97
+      ],
+      "renderHeight": 305,
+      "sourceArt": "Original generated fully clothed boss form; see docs/BOSS_LOOP.md",
+      "quality": "Opaque permanent battle uniform + detachable decorative accessories",
+      "layers": [],
+      "animations": {
+        "idle": {
+          "texture": "/assets/characters/boss-storm-states-v2.webp",
+          "frames": 4,
+          "startFrame": 0,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 1.904762,
+          "loop": true,
+          "renderScale": 1.12
+        },
+        "run": {
+          "texture": "/assets/characters/boss-storm-states-v2.webp",
+          "frames": 4,
+          "startFrame": 4,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 7.142857,
+          "loop": true,
+          "renderScale": 1.12
+        },
+        "attack": {
+          "texture": "/assets/characters/boss-storm-states-v2.webp",
+          "frames": 4,
+          "startFrame": 8,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 7.272727,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true,
+          "frameTimes": [
+            0,
+            0.18,
+            0.44,
+            0.82
+          ]
+        },
+        "cast": {
+          "texture": "/assets/characters/boss-storm-states-v2.webp",
+          "frames": 4,
+          "startFrame": 12,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 3.508772,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true,
+          "frameTimes": [
+            0,
+            0.2,
+            0.4363636363636363,
+            0.82
+          ]
+        },
+        "hit": {
+          "texture": "/assets/characters/boss-storm-states-v2.webp",
+          "frames": 4,
+          "startFrame": 16,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 8.333333,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true
+        },
+        "down": {
+          "texture": "/assets/characters/boss-storm-states-v2.webp",
+          "frames": 4,
+          "startFrame": 20,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 6.153846,
+          "loop": false,
+          "renderScale": 1.12
+        },
+        "revive": {
+          "texture": "/assets/characters/boss-storm-states-v2.webp",
+          "frames": 4,
+          "startFrame": 24,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 3.636364,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true
+        },
+        "victory": {
+          "texture": "/assets/characters/boss-storm-states-v2.webp",
+          "frames": 4,
+          "startFrame": 28,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 2.105263,
+          "loop": true,
+          "renderScale": 1.12
+        },
+        "windup": {
+          "texture": "/assets/characters/boss-storm-states-v2.webp",
+          "frames": 2,
+          "startFrame": 12,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 0.9090909090909091,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": false,
+          "frameTimes": [
+            0,
+            0.35
+          ]
+        },
+        "impact": {
+          "texture": "/assets/characters/boss-storm-states-v2.webp",
+          "frames": 2,
+          "startFrame": 10,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 3.6363636363636362,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true,
+          "frameTimes": [
+            0,
+            0.58
+          ]
+        },
+        "stun": {
+          "texture": "/assets/characters/boss-storm-states-v2.webp",
+          "frames": 4,
+          "startFrame": 16,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 8.333333,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true
+        },
+        "phase": {
+          "texture": "/assets/characters/boss-storm-states-v2.webp",
+          "frames": 4,
+          "startFrame": 12,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 3.508772,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true,
+          "frameTimes": [
+            0,
+            0.2,
+            0.4363636363636363,
+            0.82
+          ]
+        }
+      },
+      "baseCoverage": "opaque-high-neck-tunic-leggings-boots",
+      "flipX": true
+    },
+    "kimsa": {
+      "texture": "/assets/characters/boss-gold-base.webp",
+      "anchor": [
+        0.602703,
+        0.97
+      ],
+      "renderHeight": 305,
+      "sourceArt": "Original generated fully clothed boss form; see docs/BOSS_LOOP.md",
+      "quality": "Opaque permanent battle uniform + detachable decorative accessories",
+      "layers": [],
+      "animations": {
+        "idle": {
+          "texture": "/assets/characters/boss-gold-states-v2.webp",
+          "frames": 4,
+          "startFrame": 0,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 1.904762,
+          "loop": true,
+          "renderScale": 1.12
+        },
+        "run": {
+          "texture": "/assets/characters/boss-gold-states-v2.webp",
+          "frames": 4,
+          "startFrame": 4,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 7.142857,
+          "loop": true,
+          "renderScale": 1.12
+        },
+        "attack": {
+          "texture": "/assets/characters/boss-gold-states-v2.webp",
+          "frames": 4,
+          "startFrame": 8,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 7.272727,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true,
+          "frameTimes": [
+            0,
+            0.18,
+            0.44,
+            0.82
+          ]
+        },
+        "cast": {
+          "texture": "/assets/characters/boss-gold-states-v2.webp",
+          "frames": 4,
+          "startFrame": 12,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 3.508772,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true,
+          "frameTimes": [
+            0,
+            0.2,
+            0.4363636363636363,
+            0.82
+          ]
+        },
+        "hit": {
+          "texture": "/assets/characters/boss-gold-states-v2.webp",
+          "frames": 4,
+          "startFrame": 16,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 8.333333,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true
+        },
+        "down": {
+          "texture": "/assets/characters/boss-gold-states-v2.webp",
+          "frames": 4,
+          "startFrame": 20,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 6.153846,
+          "loop": false,
+          "renderScale": 1.12
+        },
+        "revive": {
+          "texture": "/assets/characters/boss-gold-states-v2.webp",
+          "frames": 4,
+          "startFrame": 24,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 3.636364,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true
+        },
+        "victory": {
+          "texture": "/assets/characters/boss-gold-states-v2.webp",
+          "frames": 4,
+          "startFrame": 28,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 2.105263,
+          "loop": true,
+          "renderScale": 1.12
+        },
+        "windup": {
+          "texture": "/assets/characters/boss-gold-states-v2.webp",
+          "frames": 2,
+          "startFrame": 12,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 0.9090909090909091,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": false,
+          "frameTimes": [
+            0,
+            0.35
+          ]
+        },
+        "impact": {
+          "texture": "/assets/characters/boss-gold-states-v2.webp",
+          "frames": 2,
+          "startFrame": 10,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 3.6363636363636362,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true,
+          "frameTimes": [
+            0,
+            0.58
+          ]
+        },
+        "stun": {
+          "texture": "/assets/characters/boss-gold-states-v2.webp",
+          "frames": 4,
+          "startFrame": 16,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 8.333333,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true
+        },
+        "phase": {
+          "texture": "/assets/characters/boss-gold-states-v2.webp",
+          "frames": 4,
+          "startFrame": 12,
+          "columns": 4,
+          "rows": 8,
+          "frameWidth": 256,
+          "frameHeight": 256,
+          "fps": 3.508772,
+          "loop": false,
+          "renderScale": 1.12,
+          "syncToAction": true,
+          "frameTimes": [
+            0,
+            0.2,
+            0.4363636363636363,
+            0.82
+          ]
+        }
+      },
+      "baseCoverage": "opaque-high-neck-tunic-leggings-boots"
+    }
+  },
+  "bossAccessories": {
+    "texture": "/assets/characters/boss-accessories.webp",
+    "columns": 4,
+    "rows": 4,
+    "frameWidth": 256,
+    "frameHeight": 256,
+    "sourceSha256": "172d678cd7f2b4b0eeabf1f6c8cb078676b4b3a517d1e6349aa2c62974a03212",
+    "role": "decorative outer accessories only; body coverage never changes"
   }
 }

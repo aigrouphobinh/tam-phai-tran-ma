@@ -1,0 +1,17 @@
+{
+  "testedAt": "2026-11-09T10:59:00.022Z",
+  "browser": "153.0.8010.0",
+  "environment": "Controlled practice on headless Linux; Windows OBS FPS and real TikTok LIVE are not verified by this test",
+  "checks": [
+    "Local control room defaults to endless boss loop with four removable outer pieces",
+    "All local audio tracks decode; loot/morph sound mappings use existing assets",
+    "75/50/25 percent HP thresholds remove three actual accessory layers; covered base and final decoration remain",
+    "Four distinct live boss atlases transform in order and loop back to Hong Lien at wave 5",
+    "12 cloth materials survive four transformations and roster remains intact",
+    "New loop controls and material counter fit a 390px mobile viewport",
+    "Animation Studio previews and scrubs all eight states on each of the four covered boss forms",
+    "Built static practice shares boss progression and cloth inventory through SharedWorker"
+  ],
+  "consoleErrors": [],
+  "failedResponses": []
+}

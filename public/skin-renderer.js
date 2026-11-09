@@ -21,9 +21,14 @@ export function sampleAtlasFrame(clip,age=0,actionDuration=null){
 }
 export function validateSkinManifest(m){
  if(!m||m.version!==1||!m.actors||typeof m.actors!=='object')throw Error('Skin manifest version 1 required');
- const actors={};
- for(const k of FACTIONS){
-  const a=m.actors[k];if(!a)throw Error('Missing actor '+k);
+ const actors={},bossForms={};
+ const variants=Object.entries(m.bossForms||{});
+ if(variants.length>8||variants.some(([id])=>!['honglien','bangnguyet','loianh','kimsa'].includes(id)))throw Error('Invalid boss form');
+ const entries=[...FACTIONS.map(k=>[k,m.actors[k]]),...variants.map(([id,a])=>['boss:'+id,a])];
+ for(const [k,a] of entries){
+  if(!a)throw Error('Missing actor '+k);
+  if(k.startsWith('boss:')&&a.baseCoverage!=='opaque-high-neck-tunic-leggings-boots')throw Error('Permanent covered boss base required');
+  if(a.flipX!==undefined&&typeof a.flipX!=='boolean')throw Error('Invalid actor facing '+k);
   if(!Array.isArray(a.anchor)||a.anchor.length!==2||a.anchor.some(n=>!Number.isFinite(n)||n<0||n>1))throw Error('Invalid anchor '+k);
   if(!Number.isFinite(a.renderHeight)||a.renderHeight<32||a.renderHeight>500)throw Error('Invalid renderHeight '+k);
   const texture=a.texture||null,layers=Array.isArray(a.layers)?a.layers:[];
@@ -58,11 +63,17 @@ export function validateSkinManifest(m){
    if(!safePath(l.texture)||!bones.includes(l.bone||'root'))throw Error('Invalid layer '+k);
    for(const f of ['x','y','rotation','width','height','pivotX','pivotY'])if(l[f]!==undefined&&!Number.isFinite(l[f]))throw Error('Nonfinite rig value '+k);
   }
-  actors[k]={texture,anchor:a.anchor,renderHeight:a.renderHeight,
+  const actor={texture,anchor:a.anchor,renderHeight:a.renderHeight,flipX:a.flipX===true,
    layers:layers.map(l=>({bone:'root',x:0,y:0,rotation:0,width:.5,height:.5,pivotX:.5,pivotY:.5,...l})),
    sourceArt:typeof a.sourceArt==='string'?a.sourceArt:null,animations};
+  if(k.startsWith('boss:'))bossForms[k.slice(5)]=actor;else actors[k]=actor;
  }
- return {version:1,actors};
+ let bossAccessories=null;
+ if(m.bossAccessories){const b=m.bossAccessories;
+  if(!safePath(b.texture)||b.columns!==4||b.rows!==4||b.frameWidth!==256||b.frameHeight!==256)throw Error('Invalid boss accessory atlas');
+  bossAccessories={texture:b.texture,columns:4,rows:4,frameWidth:256,frameHeight:256};
+ }
+ return {version:1,actors,bossForms,bossAccessories};
 }
 export class SkinRenderer{
  constructor({fetchFn,ImageCtor=globalThis.Image,clock=()=>performance.now()}={}){
@@ -87,11 +98,12 @@ export class SkinRenderer{
     if(!res.ok)throw Error('Manifest HTTP '+res.status);
     this.manifest=validateSkinManifest(await res.json());
     const paths=new Set();
-    for(const a of Object.values(this.manifest.actors)){
+    for(const a of [...Object.values(this.manifest.actors),...Object.values(this.manifest.bossForms)]){
      if(a.texture)paths.add(a.texture);
      for(const l of a.layers)paths.add(l.texture);
      for(const clip of Object.values(a.animations))paths.add(clip.texture);
     }
+    if(this.manifest.bossAccessories)paths.add(this.manifest.bossAccessories.texture);
     const errors=[];
     await Promise.all([...paths].map(async path=>{
      try{this.images.set(path,await this.fetchImage(path))}catch(e){errors.push(path+': '+e.message)}
@@ -102,22 +114,25 @@ export class SkinRenderer{
   })();
   return this.loading;
  }
- has(k){
-  const a=this.manifest?.actors?.[k];if(!a)return false;
+ actorFor(key,formId=null){return key==='boss'&&formId&&this.manifest?.bossForms?.[formId]||this.manifest?.actors?.[key];}
+ has(k,formId=null){
+  const a=this.actorFor(k,formId);if(!a)return false;
   const paths=a.texture?[a.texture]:a.layers.map(l=>l.texture);
   return paths.length>0&&paths.every(p=>this.images.has(p));
  }
- getClip(key,state){const clips=this.manifest?.actors?.[key]?.animations;return clips?.[state]||clips?.[aliases[state]]||null;}
+ getClip(key,state,formId=null){const clips=this.actorFor(key,formId)?.animations;return clips?.[state]||clips?.[aliases[state]]||null;}
  usableClip(clip){const img=clip&&this.images.get(clip.texture);return Boolean(img&&img.naturalWidth>=clip.columns*clip.frameWidth&&img.naturalHeight>=clip.rows*clip.frameHeight);}
  status(){
   const painted=Object.fromEntries(FACTIONS.map(k=>[k,Object.keys(this.manifest?.actors?.[k]?.animations||{}).filter(s=>this.usableClip(this.getClip(k,s)))]));
   return {ready:this.ready,loaded:this.images.size,actors:Object.fromEntries(FACTIONS.map(k=>[k,this.has(k)])),
    animationReady:FACTIONS.every(k=>['idle','run','attack','cast','hit','down','revive','victory'].every(s=>painted[k].includes(s))),
+   bossForms:Object.fromEntries(Object.keys(this.manifest?.bossForms||{}).map(id=>[id,this.has('boss',id)&&['idle','attack','cast','hit'].every(s=>this.usableClip(this.getClip('boss',s,id)))])),
    painted,errors:this.errors.slice()};
  }
  drawActor(g,key,actor,t,x,y,animator,zoom=1){
-  if(!this.has(key))return false;
-  const a=this.manifest.actors[key],isBoss=key==='boss',track=isBoss?animator.boss:animator.states.get(actor.id);
+  const formId=key==='boss'?actor.bossCycle?.form?.id:null;
+  if(!this.has(key,formId))return false;
+  const a=this.actorFor(key,formId),isBoss=key==='boss',track=isBoss?animator.boss:animator.states.get(actor.id);
   const state=track?.state||'idle',age=Math.max(0,t-(track?.since??this.clock())/1000);
   const displayState=state==='windup'?'cast':state==='impact'?'attack':state==='stun'?'hit':state;
   const p=getPose(displayState,age,t,track?.seed||.6,track?.duration||.55);
@@ -140,7 +155,7 @@ export class SkinRenderer{
    }
    g.restore();
   }
-  const clip=this.getClip(key,state);
+  const clip=this.getClip(key,state,formId);
   const atlas=clip?this.images.get(clip.texture):null;
   const clipUsable=this.usableClip(clip);
   if(clipUsable){
@@ -148,7 +163,7 @@ export class SkinRenderer{
    // The frames already contain their own anticipation, contact and follow-through.
    const {sx,sy}=sampleAtlasFrame(clip,age,track?.duration);
    const hh=h*(clip.renderScale||1),ww=hh*clip.frameWidth/clip.frameHeight;
-   g.save();g.translate(x,y);g.globalAlpha*=p.opacity;
+   g.save();g.translate(x,y);if(a.flipX)g.scale(-1,1);g.globalAlpha*=p.opacity;
    g.drawImage(atlas,sx,sy,clip.frameWidth,clip.frameHeight,
     -ww*a.anchor[0],-hh*a.anchor[1],ww,hh);
    g.restore();
@@ -157,6 +172,7 @@ export class SkinRenderer{
   // Only the fallback flat texture uses client-side body deformation.
   g.save();g.translate(x+direction.x*(isBoss?.94:.75),
    y+p.bob*(isBoss?2:1.3)+direction.y*(isBoss?1.15:.83));
+  if(a.flipX)g.scale(-1,1);
   const downTilt=state==='down'?p.fall*(isBoss?.48:.68):p.fall*(isBoss?.6:1);
   g.rotate(downTilt+p.lean*.30+direction.tilt*(isBoss?.55:.75));
   const wave=state==='run'?1+.011*Math.sin(t*15):1;

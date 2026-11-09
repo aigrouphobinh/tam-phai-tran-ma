@@ -48,7 +48,7 @@ def trim_neighbor_fragments(cell):
 
 
 def build(source, actor, output, size=256):
-    if actor not in {"kiem", "huyen", "linh", "boss"}:
+    if actor not in {"kiem", "huyen", "linh", "boss", "boss-red", "boss-ice", "boss-storm", "boss-gold"}:
         raise ValueError("Unknown actor")
     image = Image.open(source).convert("RGBA")
     if abs(image.height / image.width - 2) > .02:
@@ -102,7 +102,7 @@ def build(source, actor, output, size=256):
         if state == "cast":
             clip["frameTimes"] = [0, .20, .24 / .55, .82]
         clips[state] = clip
-    if actor == "boss":
+    if actor == "boss" or actor.startswith("boss-"):
         # Telegraph holds the raised weapon until the authoritative impact.
         clips["windup"] = {**clips["cast"], "frames": 2, "fps": 2 / 2.2,
                            "frameTimes": [0, .35], "syncToAction": False}
@@ -112,10 +112,17 @@ def build(source, actor, output, size=256):
         clips["stun"] = {**clips["hit"]}
         clips["phase"] = {**clips["cast"]}
         clips["attack"] = {**clips["attack"], "frameTimes": [0, .18, .44, .82]}
+    anchor = [.5, .97]
+    if actor.startswith("boss-"):
+        mask = atlas.crop((0, 0, size, size)).getchannel("A").point(lambda a: 255 if a >= 192 else 0)
+        bottom = mask.getbbox()[3]
+        feet = [x for y in range(max(0, bottom - round(size / 8)), bottom)
+                for x in range(size) if mask.getpixel((x, y))]
+        anchor[0] = round(sum(feet) / len(feet) / size, 6)
     metadata = dict(actor=actor, importerVersion=2, webpQuality=94, webpMethod=4,
                     sourceSha256=hashlib.sha256(Path(source).read_bytes()).hexdigest(),
                     sourceSize=list(image.size), outputSize=list(atlas.size),
-                    scale=scale, groundAnchor=[.5, .97],
+                    scale=scale, groundAnchor=anchor,
                     provenance="Original artwork generated from the project's existing character reference",
                     animations=clips)
     (output / f"{actor}-states-v2.json").write_text(

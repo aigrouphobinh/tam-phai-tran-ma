@@ -5,7 +5,7 @@ export class GameSession{
   this.pending=new Map();this.seq=0;this.onState=onState;
   if(STATIC_PREVIEW){
    if(!globalThis.SharedWorker){onConnection(false);throw Error('Trình duyệt chưa hỗ trợ sân luyện chia sẻ. Hãy dùng Chrome hoặc bản local.');}
-   this.worker=new SharedWorker('/practice-worker.js',{type:'module',name:'tam-phai-v3.0.1'});this.port=this.worker.port;
+   this.worker=new SharedWorker('/practice-worker.js',{type:'module',name:'tam-phai-v3.1-boss-loop'});this.port=this.worker.port;
    this.port.onmessage=({data:d})=>{if(d.type==='state'){onConnection(true);onState(d.state);}else if(d.type==='reply'){const p=this.pending.get(d.id);if(p){clearTimeout(p.timer);this.pending.delete(d.id);d.error?p.reject(Error(d.error)):p.resolve(d.result);}}};
    this.port.start();this.port.postMessage({type:'state'});
   }else{

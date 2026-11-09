@@ -90,7 +90,7 @@ test('default browser fetch retains Window receiver and loads all four real spri
   const skin=new SkinRenderer({ImageCtor:TestImage});
   const status=await skin.load();
   assert.equal(status.ready,true,JSON.stringify(status.errors));
-  assert.equal(status.loaded,8);
+  assert.equal(status.loaded,15);
   assert.deepEqual(Object.values(status.actors),[true,true,true,true]);
   assert.equal(called.length,1);
   assert.equal(called[0].url,'/assets/characters/manifest.json');

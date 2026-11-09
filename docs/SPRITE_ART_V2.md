@@ -1,5 +1,7 @@
 # Sprite art V2 · 09/11/2026
 
+Cập nhật tiếp theo: bộ boss mặc định được thay bằng bốn dạng có trang phục nền kín và phụ kiện riêng; xem [BOSS_LOOP.md](BOSS_LOOP.md). Phần bên dưới ghi lại bộ V2 trước vòng biến hình.
+
 Bốn nhân vật dùng tám clip riêng, bốn tư thế mỗi clip: **128 tư thế**. Mỗi actor nạp một WebP 1024×2048 (4 cột × 8 hàng, ô 256×256). Bốn ảnh cũ được giữ làm dự phòng. Atlas Kiếm Tông 12 frame cũ vẫn còn để đối chiếu nhưng không trộn vào bộ V2 vì khác kích thước và chất lượng.
 
 | Actor | Reference gốc | Sheet dùng trong game | Hướng |

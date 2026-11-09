@@ -45,7 +45,10 @@ TikTok có thể thay đổi giao thức hoặc cách tạo WebSocket. Cầu n�
 
 ## Luật chơi
 
-- Mỗi trận: **80.000 HP boss**, **240 giây**, **1.000 phong ấn**. Hết giờ hoặc mất phong ấn là thua. Kết quả hiện 12 giây rồi mở trận tiếp theo, giữ lại đội hình đã tham gia.
+- Mặc định là **vòng boss biến hình**: Hồng Liên → Băng Nguyệt → Lôi Ảnh → Kim Sa → lặp lại. Mỗi dạng có 240 giây; HP ban đầu từ 80.000 đến 94.000, tăng có giới hạn qua các vòng.
+- Ở **75% / 50% / 25% HP**, boss rơi phụ kiện ngoài thành vật liệu. Còn **12% HP** sẽ đổi dạng; trang phục nền kín luôn giữ nguyên.
+- **1.000 phong ấn**; hết giờ hoặc mất phong ấn là thua. Kết quả hiện 12 giây rồi mở lại trận, giữ đội hình và vật liệu đã kiếm được. Đổi dạng giữa trận giữ chiến công, quà và túi vật liệu.
+- Trong sân luyện có **Thử phá giáp** và **Thử biến hình** để xem nhanh. Xem [docs/BOSS_LOOP.md](docs/BOSS_LOOP.md) cho luật loot, vòng lặp và bốn kiểu đánh.
 - `!kiem`: Kiếm Tông tiền tuyến, tấn công vật lý.
 - `!huyen`: Huyền Môn trung tuyến, pháp thuật/khống chế.
 - `!linh`: Linh Dược hậu tuyến, hồi phục/hộ thuẫn/hồi sinh.
@@ -106,7 +109,7 @@ Xem [docs/RELEASE_CHECK.md](docs/RELEASE_CHECK.md) để phân biệt phần đ�
 
 ## Mã nguồn và asset
 
-Giữ renderer Canvas hiện có để tái sử dụng animation/VFX/SFX của dự án; không chuyển engine chỉ để đổi tên công nghệ. Asset gồm bốn sprite sheet WebP, mỗi sheet có 8 trạng thái × 4 tư thế vẽ riêng (128 tư thế), bốn ảnh RGBA dự phòng, nền đấu trường và 15 MP3. Boss có thêm ánh xạ tụ lực/va chạm/choáng/chuyển giai đoạn. Mỗi hành động hiện có 4 tư thế; đây là sprite animation, không phải rig Spine nhiều lớp. Atlas Kiếm Tông 12 frame cũ được giữ lại trong mã nguồn để đối chiếu. Không dùng ảnh infographic làm bằng chứng tính năng đã chạy.
+Giữ renderer Canvas hiện có để tái sử dụng animation/VFX/SFX của dự án; không chuyển engine chỉ để đổi tên công nghệ. Asset gồm ba môn phái và bốn dạng boss, mỗi nhân vật có 8 trạng thái × 4 tư thế riêng (224 tư thế), texture RGBA dự phòng, atlas 16 phụ kiện ngoài, nền đấu trường và 15 MP3. Boss có thêm ánh xạ tụ lực/va chạm/choáng/chuyển giai đoạn. Mỗi hành động hiện có 4 tư thế; đây là sprite animation, không phải rig Spine nhiều lớp. Atlas Kiếm Tông 12 frame cũ được giữ lại trong mã nguồn để đối chiếu. Không dùng ảnh infographic làm bằng chứng tính năng đã chạy.
 
 `input.mjs` chuẩn hóa sự kiện; `bridge.mjs` giải mã; `engine.mjs` tính chiến đấu; `combat-geometry.mjs` xác định vùng trúng; `persistence.mjs` lưu trận; `server.mjs` phục vụ local. Frontend nằm trong `public/`, tiện ích Chrome trong `extension/`.
 
@@ -122,3 +125,9 @@ Giữ renderer Canvas hiện có để tái sử dụng animation/VFX/SFX của 
 Nguồn art, brief và cách nhập lại sheet: [docs/SPRITE_ART_V2.md](docs/SPRITE_ART_V2.md).
 Ảnh chụp và kết quả trình duyệt: [docs/qa/sprite-v2.json](docs/qa/sprite-v2.json).
 Kiểm chứng TikTok LIVE thật và FPS/âm thanh trên Windows OBS vẫn cần thực hiện trên máy phát.
+
+## Boss rơi vải và biến hình
+
+Màn điều khiển/OBS hiển thị tên dạng, số lớp ngoài còn lại, lượt biến hình và tổng vải linh đã nhặt. Vải rơi có chuyển động và âm thanh, được server ghi nhận một lần rồi lưu trong checkpoint. Quà đến giữa lúc biến hình được giữ để dùng ở dạng kế tiếp. Bốn boss mặc trang phục chiến đấu kín cố định; chỉ các phụ kiện ngoài rơi xuống.
+
+Luật, cách thử và nguồn art: [docs/BOSS_LOOP.md](docs/BOSS_LOOP.md). Bằng chứng chạy trình duyệt: [docs/qa/boss-loop/report.json](docs/qa/boss-loop/report.json).

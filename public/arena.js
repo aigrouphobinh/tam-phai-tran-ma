@@ -3,11 +3,13 @@ import {Effects} from './fx.js';
 import {SoundBank} from './audio.js';
 import {ModelAnimator} from './models2d.js';
 import {SkinRenderer} from './skin-renderer.js';
+import {BossWardrobe} from './boss-wardrobe.js';
 
 const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d',{alpha:false});
 const W=540,H=960,TAU=Math.PI*2;
 const BG=new Image();BG.src='/assets/arena-background.webp';
 const fx=new Effects(),audio=new SoundBank(),models=new ModelAnimator(),skins=new SkinRenderer();
+const wardrobe=new BossWardrobe(skins);
 skins.load().then(status=>{if(!status.animationReady)console.warn('[Tam Phai] Missing character animation:',status.errors,status.painted)});
 const COLORS={kiem:'#64bcff',huyen:'#cc76f9',linh:'#76f3bd',gold:'#ffdc8a',red:'#f15e86'};
 const CLASS={kiem:'KIẾM TÔNG',huyen:'HUYỀN MÔN',linh:'LINH DƯỢC'};
@@ -45,7 +47,7 @@ function drawBackground(t){
  floatingDust(t);ctx.restore()
 }
 // State-driven, articulated boss model: independent head, arms, scythe, skirt and ribbons.
-function drawBoss(t,s){if(!skins.drawBoss(ctx,s,t,models))models.drawBoss(ctx,s,t);}
+function drawBoss(t,s){if(!wardrobe.drawBoss(ctx,s,t,models))models.drawBoss(ctx,s,t);}
 function fighter(p,t){
  const a=anims.get(p.id)||{x:p.x,y:p.y,rx:p.x,ry:p.y,received:performance.now()};
  const f=clamp((performance.now()-a.received)/Math.max(80,a.interval||120));
@@ -82,7 +84,7 @@ function scene(t,s){
  // Live simulation position & state (never hardcoded demo characters).
  const players=[...(s.players||[])].sort((a,b)=>a.y-b.y);
  for(const p of players)fighter(p,t);
- fx.front(ctx,s,t);namesAndLabels(s,t);ctx.restore();
+ fx.front(ctx,s,t);wardrobe.drawDrops(ctx,s,t);namesAndLabels(s,t);ctx.restore();
 }
 function hud(t,s){
  const hp=clamp(s.hp/Math.max(1,s.maxHP)),phase=s.phase||1,sec=Math.max(0,Math.ceil(s.time||0));
@@ -90,12 +92,16 @@ function hud(t,s){
  text(Number(s.viewerCount||0).toLocaleString('vi-VN')+' xem',122,33,10,'#e3efff','center','sans-serif');
  panel(164,12,362,51,'#d5ad68');text('TAM PHÁI TRẤN MA',345,44,25,'#ffdfa1','center','Georgia',true);
  panel(13,74,514,117,'#cf9b61');
- text('HỒNG LIÊN MA TƯỚNG',28,96,20,'#ffe1c3');
- panel(355,81,160,26,'#b76776');text('GIAI ĐOẠN '+phase,435,100,14,'#ffe3c5','center');
+ text((s.bossCycle?.form.name||'Hồng Liên Ma Tướng').toUpperCase(),28,96,18,s.bossCycle?.form.color||'#ffe1c3');
+ panel(355,81,160,26,'#b76776');text(s.bossCycle?'DẠNG '+s.bossCycle.wave+' · GĐ '+phase:'GIAI ĐOẠN '+phase,435,100,13,'#ffe3c5','center');
  progress(27,113,487,23,hp,'#e75578');
  text(`${(hp*100).toFixed(1)}%`,270,130,17,'#fff0ef','center');
  text('◷ '+Math.floor(sec/60).toString().padStart(2,'0')+':'+(sec%60).toString().padStart(2,'0'),32,165,24,'#fff0d2');
  text('TRẬN '+s.round+'   ·   '+s.count+' NGƯỜI THAM CHIẾN',511,165,12,'#ddc6ac','right','sans-serif');
+ if(s.bossCycle){
+  text('LỚP NGOÀI '+s.bossCycle.remaining+'/4   ·   VẢI LINH '+s.bossCycle.loot.total,28,183,11,'#d9c6ef','left','sans-serif');
+  text(s.bossCycle.transform?'ĐANG BIẾN HÌNH…':'12% HP → ĐỔI DẠNG',511,183,11,s.bossCycle.form.color,'right','sans-serif');
+ }
  if(s.shield>0){panel(160,199,220,34,'#ce8ff5');text(`KHIÊN MA ${Math.ceil(s.shield)} · ${Math.ceil(s.cast)}s`,270,222,15,'#f6cbff','center', 'sans-serif',true)}
  if(s.warning){const time=Math.max(0,s.warning.impactAt-s.elapsed).toFixed(1);
    panel(109,679,322,51,'#e54f66');ctx.fillStyle='rgba(174,28,52,.52)';roundRect(114,683,312,43,6);ctx.fill();
@@ -137,10 +143,13 @@ function init(){
    for(const ev of events){fx.receive(ev);audio.effect(ev);if(ev.type==='SKILL_CAST'){
       activeMessage=ev.name+' ✦ '+ev.skill;notifyUntil=performance.now()/1000+2.3;
     }else if(ev.type==='PHASE'){activeMessage='BOSS BƯỚC VÀO GIAI ĐOẠN '+ev.phase;notifyUntil=performance.now()/1000+2.2}
+    else if(ev.type==='BOSS_TRANSFORM_START'){activeMessage='BIẾN HÌNH → '+ev.name;notifyUntil=performance.now()/1000+1.8;}
+    else if(ev.type==='BOSS_LOOT_COLLECTED'){activeMessage='+1 '+ev.material+' · '+ev.name;notifyUntil=performance.now()/1000+1.5;}
    }
    lastEvent=next.events?.at(-1)?.id||lastEvent;
   }
   const received=performance.now();
+  wardrobe.observe(next,received/1000);
   models.observeBoss(next,received,next.elapsed);
   for(const p of next.players||[]){
    models.observe(p,received,next.elapsed);

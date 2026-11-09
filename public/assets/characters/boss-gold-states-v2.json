@@ -1,0 +1,202 @@
+{
+  "actor": "boss-gold",
+  "importerVersion": 2,
+  "webpQuality": 94,
+  "webpMethod": 4,
+  "sourceSha256": "33dc361e775be2ae4373f54239eccd08dc49ea92af39c2f9045ec5915e3a8f5e",
+  "sourceSize": [
+    887,
+    1774
+  ],
+  "outputSize": [
+    1024,
+    2048
+  ],
+  "scale": 1.083963963963964,
+  "groundAnchor": [
+    0.602703,
+    0.97
+  ],
+  "provenance": "Original artwork generated from the project's existing character reference",
+  "animations": {
+    "idle": {
+      "texture": "/assets/characters/boss-gold-states-v2.webp",
+      "frames": 4,
+      "startFrame": 0,
+      "columns": 4,
+      "rows": 8,
+      "frameWidth": 256,
+      "frameHeight": 256,
+      "fps": 1.904762,
+      "loop": true,
+      "renderScale": 1.12
+    },
+    "run": {
+      "texture": "/assets/characters/boss-gold-states-v2.webp",
+      "frames": 4,
+      "startFrame": 4,
+      "columns": 4,
+      "rows": 8,
+      "frameWidth": 256,
+      "frameHeight": 256,
+      "fps": 7.142857,
+      "loop": true,
+      "renderScale": 1.12
+    },
+    "attack": {
+      "texture": "/assets/characters/boss-gold-states-v2.webp",
+      "frames": 4,
+      "startFrame": 8,
+      "columns": 4,
+      "rows": 8,
+      "frameWidth": 256,
+      "frameHeight": 256,
+      "fps": 7.272727,
+      "loop": false,
+      "renderScale": 1.12,
+      "syncToAction": true,
+      "frameTimes": [
+        0,
+        0.18,
+        0.44,
+        0.82
+      ]
+    },
+    "cast": {
+      "texture": "/assets/characters/boss-gold-states-v2.webp",
+      "frames": 4,
+      "startFrame": 12,
+      "columns": 4,
+      "rows": 8,
+      "frameWidth": 256,
+      "frameHeight": 256,
+      "fps": 3.508772,
+      "loop": false,
+      "renderScale": 1.12,
+      "syncToAction": true,
+      "frameTimes": [
+        0,
+        0.2,
+        0.4363636363636363,
+        0.82
+      ]
+    },
+    "hit": {
+      "texture": "/assets/characters/boss-gold-states-v2.webp",
+      "frames": 4,
+      "startFrame": 16,
+      "columns": 4,
+      "rows": 8,
+      "frameWidth": 256,
+      "frameHeight": 256,
+      "fps": 8.333333,
+      "loop": false,
+      "renderScale": 1.12,
+      "syncToAction": true
+    },
+    "down": {
+      "texture": "/assets/characters/boss-gold-states-v2.webp",
+      "frames": 4,
+      "startFrame": 20,
+      "columns": 4,
+      "rows": 8,
+      "frameWidth": 256,
+      "frameHeight": 256,
+      "fps": 6.153846,
+      "loop": false,
+      "renderScale": 1.12
+    },
+    "revive": {
+      "texture": "/assets/characters/boss-gold-states-v2.webp",
+      "frames": 4,
+      "startFrame": 24,
+      "columns": 4,
+      "rows": 8,
+      "frameWidth": 256,
+      "frameHeight": 256,
+      "fps": 3.636364,
+      "loop": false,
+      "renderScale": 1.12,
+      "syncToAction": true
+    },
+    "victory": {
+      "texture": "/assets/characters/boss-gold-states-v2.webp",
+      "frames": 4,
+      "startFrame": 28,
+      "columns": 4,
+      "rows": 8,
+      "frameWidth": 256,
+      "frameHeight": 256,
+      "fps": 2.105263,
+      "loop": true,
+      "renderScale": 1.12
+    },
+    "windup": {
+      "texture": "/assets/characters/boss-gold-states-v2.webp",
+      "frames": 2,
+      "startFrame": 12,
+      "columns": 4,
+      "rows": 8,
+      "frameWidth": 256,
+      "frameHeight": 256,
+      "fps": 0.9090909090909091,
+      "loop": false,
+      "renderScale": 1.12,
+      "syncToAction": false,
+      "frameTimes": [
+        0,
+        0.35
+      ]
+    },
+    "impact": {
+      "texture": "/assets/characters/boss-gold-states-v2.webp",
+      "frames": 2,
+      "startFrame": 10,
+      "columns": 4,
+      "rows": 8,
+      "frameWidth": 256,
+      "frameHeight": 256,
+      "fps": 3.6363636363636362,
+      "loop": false,
+      "renderScale": 1.12,
+      "syncToAction": true,
+      "frameTimes": [
+        0,
+        0.58
+      ]
+    },
+    "stun": {
+      "texture": "/assets/characters/boss-gold-states-v2.webp",
+      "frames": 4,
+      "startFrame": 16,
+      "columns": 4,
+      "rows": 8,
+      "frameWidth": 256,
+      "frameHeight": 256,
+      "fps": 8.333333,
+      "loop": false,
+      "renderScale": 1.12,
+      "syncToAction": true
+    },
+    "phase": {
+      "texture": "/assets/characters/boss-gold-states-v2.webp",
+      "frames": 4,
+      "startFrame": 12,
+      "columns": 4,
+      "rows": 8,
+      "frameWidth": 256,
+      "frameHeight": 256,
+      "fps": 3.508772,
+      "loop": false,
+      "renderScale": 1.12,
+      "syncToAction": true,
+      "frameTimes": [
+        0,
+        0.2,
+        0.4363636363636363,
+        0.82
+      ]
+    }
+  },
+  "anchorMethod": "opaque idle foot centroid in bottom 32 pixels"
+}

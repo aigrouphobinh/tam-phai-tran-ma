@@ -61,5 +61,9 @@ export class SoundBank{
   else if(event.type==='BOSS_IMPACT')this.play('boss_impact',{volume:.8,x:event.x});
   else if(event.type==='RESULT'&&event.result?.includes('THÀNH CÔNG'))this.play('victory',{volume:.9});
   else if(event.type==='REVIVE')this.play('revive',{volume:.5,x:event.x});
+  else if(event.type==='BOSS_CLOTH_DROP')this.play('shield_break',{volume:.3,x:404});
+  else if(event.type==='BOSS_LOOT_COLLECTED')this.play('magic_seal',{volume:.12,x:350});
+  else if(event.type==='BOSS_TRANSFORM_START')this.play('boss_cast',{volume:.6,x:404});
+  else if(event.type==='BOSS_TRANSFORMED')this.play('revive',{volume:.45,x:404});
  }
 }

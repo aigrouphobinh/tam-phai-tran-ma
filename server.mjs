@@ -9,7 +9,7 @@ import {CheckpointStore} from './persistence.mjs';
 
 export async function createGameServer({port=Number(process.env.PORT||8788),dataDir=resolve(fileURLToPath(new URL('./.runtime/',import.meta.url))),restore=true}={}){
  const ROOT=resolve(fileURLToPath(new URL('./public/',import.meta.url)));
- const raid=new RaidEngine(),store=new CheckpointStore(resolve(dataDir,'checkpoint.json'));
+ const raid=new RaidEngine({bossLoop:true}),store=new CheckpointStore(resolve(dataDir,'checkpoint.json'));
  const recovered=restore&&await store.load(raid);
  const gate=new InputGate(raid);
  await mkdir(dataDir,{recursive:true});
@@ -21,7 +21,7 @@ export async function createGameServer({port=Number(process.env.PORT||8788),data
  const broadcast=()=>{const payload='data: '+JSON.stringify(state())+'\n\n';for(const res of clients){if(res.writableEnded||res.destroyed||res.writableLength>1e6){clients.delete(res);res.destroy();continue;}res.write(payload);}};
  function training(){raid.pendingGifts=[];raid.start();raid.eventLedger.clear();gate.seen.clear();raid.sessionRoom='';raid.sessionSource='practice';mode='demo';room='';status='Sân luyện · chỉ nhận thao tác thử';}
  function command({action,faction,name,id,tier,coins,room:requestedRoom,text,count}){
-  if(!['bridge','demo','stop','reset','join','skill','gift','chat','like','squad'].includes(action))throw Error('Lệnh không hợp lệ');
+  if(!['bridge','demo','stop','reset','join','skill','gift','chat','like','squad','boss-hit','boss-transform'].includes(action))throw Error('Lệnh không hợp lệ');
   if(action==='bridge'){
    const nextRoom=String(requestedRoom||'').trim().replace(/^@/,'');if(!/^[a-zA-Z0-9_.]{1,32}$/.test(nextRoom))throw Error('Nhập tên kênh TikTok, không kèm đường link');
    disconnect();disconnect=()=>{};
@@ -41,7 +41,9 @@ export async function createGameServer({port=Number(process.env.PORT||8788),data
    }else{
     const p=raid.players.get(String(id))||[...raid.players.values()].find(p=>p.faction===faction)||[...raid.players.values()][0];
     if(!p)throw Error('Thêm đệ tử trước khi thử kỹ năng');
-    if(action==='skill'||action==='gift'){
+    if(action==='boss-hit'||action==='boss-transform'){
+     raid.damage(raid.maxHP*(action==='boss-hit'?.27:1),p,'practice');
+    }else if(action==='skill'||action==='gift'){
      const t=Math.min(5,Math.max(1,Math.trunc(Number(tier||coins)||1)));raid.gift(p.id,p.name,[1,5,20,100,500][t-1],1,'practice-'+(++seq));
     }else if(action==='chat')raid.chat(p.id,p.name,text);
     else if(action==='like')raid.like(p.id,count||15);
@@ -85,7 +87,7 @@ export async function createGameServer({port=Number(process.env.PORT||8788),data
    res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});
    clients.add(res);res.write('data: '+JSON.stringify(state())+'\n\n');req.on('close',()=>clients.delete(res));return;
   }
-  if(url.pathname==='/engine.mjs'){res.writeHead(200,{'Content-Type':mime['.mjs']});res.end(await readFile(new URL('./engine.mjs',import.meta.url)));return;}
+  if(['/engine.mjs','/boss-cycle.mjs','/combat-geometry.mjs'].includes(url.pathname)){res.writeHead(200,{'Content-Type':mime['.mjs']});res.end(await readFile(new URL('.'+url.pathname,import.meta.url)));return;}
   const routes={'/':'/index.html','/admin':'/index.html','/admin/':'/index.html','/obs':'/obs.html','/obs/':'/obs.html','/models':'/models.html','/models/':'/models.html','/animation-studio':'/animation-studio.html'};
   const path=decodeURIComponent(routes[url.pathname]||url.pathname);
   if(path.includes('\0')||path.includes('\\'))throw Error('Đường dẫn không hợp lệ');

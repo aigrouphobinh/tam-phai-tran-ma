@@ -1,11 +1,14 @@
 import {readFile,writeFile,rename,mkdir} from 'node:fs/promises';
 import {dirname} from 'node:path';
+import {resetBossCycle,breakStage,validateBossCycle} from './boss-cycle.mjs';
 export function serializeRaid(raid){return {version:1,savedAt:new Date().toISOString(),state:{...raid,players:[...raid.players.entries()],eventLedger:[...raid.eventLedger.entries()],inputLedger:[...raid.inputLedger.entries()],comboLedger:[...raid.comboLedger.entries()]}};}
 export function restoreRaid(raid,record){const s=record?.state;
- if(record?.version!==1||!s||!Array.isArray(s.players)||s.players.length>2000||!Number.isFinite(s.hp)||s.hp<0||s.hp>80000||!Number.isFinite(s.elapsed))throw Error('Checkpoint không hợp lệ');
+ if(record?.version!==1||!s||!Array.isArray(s.players)||s.players.length>2000||!Number.isFinite(s.hp)||s.hp<0||s.hp>(s.maxHP||80000)||!Number.isFinite(s.maxHP)||s.maxHP<=0||s.maxHP>1000000||!Number.isFinite(s.elapsed))throw Error('Checkpoint không hợp lệ');
  for(const k of Object.keys(raid))if(k in s&&!['players','eventLedger','inputLedger','comboLedger','scores'].includes(k))raid[k]=s[k];
  raid.players=new Map(s.players);raid.eventLedger=new Map(s.eventLedger||[]);raid.inputLedger=new Map(s.inputLedger||[]);raid.comboLedger=new Map(s.comboLedger||[]);
- raid.scores=Object.assign(Object.create(null),s.scores||{});return raid;
+ raid.scores=Object.assign(Object.create(null),s.scores||{});
+ if(raid.bossLoop&&!s.bossCycle){resetBossCycle(raid);raid.bossCycle.stage=breakStage(raid.hp,raid.maxHP);}
+ validateBossCycle(raid);return raid;
 }
 export class CheckpointStore{
  constructor(path){this.path=path;this.pending=Promise.resolve();this.error='';}

@@ -43,7 +43,7 @@ test('four character sheets each provide eight separately registered painted cli
 
 test('every player state and all boss aliases draw one real crop at the expected atlas row',async()=>{
  const skin=createSkin(),status=await skin.load();assert.equal(status.animationReady,true);
- assert.equal(status.loaded,8,'shared state sheets load once per actor');
+ assert.equal(status.loaded,15,'shared state sheets load once per actor');
  const rig=new ModelAnimator(),{context,calls}=drawingContext();
  for(const key of Object.keys(manifest.actors))for(const state of Object.keys(manifest.actors[key].animations)){
   const p={id:key,faction:key,state,scale:.82,hp:100,actionSeq:state,actionDuration:.55};
